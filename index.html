@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeutschTagebuch | Daily German Practice</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Warm Neutrals & Paper -->
+    <!-- 
+        Background: #FDFBF7 (Cream/Paper)
+        Surface: #FFFFFF (White)
+        Primary Text: #44403C (Warm Stone 800)
+        Secondary Text: #78716C (Warm Stone 500)
+        Accent: #D97706 (Amber 600 - Focus/Energy)
+        Success: #65A30D (Lime 600 - Learning)
+    -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF7;
+            color: #44403C;
+        }
+        h1, h2, h3, .serif {
+            font-family: 'Merriweather', serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        /* Hide scrollbar for clean UI in lists */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .nav-item.active {
+            background-color: #E7E5E4; /* Stone 200 */
+            color: #1C1917;
+            font-weight: 600;
+            border-left: 4px solid #D97706;
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+
+    <!-- Application Structure Plan: 
+         1. Layout: Responsive Sidebar Navigation (Desktop) / Bottom Nav (Mobile) + Main Content Area.
+         2. Dashboard: High-level stats, streak, session timer, and activity chart (Chart.js) to show progress.
+         3. Journal (Tagebuch): The core interactive element. Split pane for English/German writing. "Save" action parses text to update vocabulary.
+         4. Vocabulary (Wortschatz): Grid view of collected words. Filterable.
+         5. Phrases (Redewendungen): List of useful phrases with "Reveal" interaction for self-quizzing.
+         6. Motivation: Static cards with tips.
+         Rationale: Focuses on the "Create -> Review -> Track" loop requested by the user.
+    -->
+    
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="flex flex-col md:flex-row min-h-screen">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden flex justify-between items-center p-4 bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="font-bold serif text-xl text-stone-800">DeutschTagebuch</div>
+        <div id="mobile-timer" class="text-amber-600 font-mono text-sm bg-amber-50 px-2 py-1 rounded">00:00</div>
+        <button id="mobile-menu-btn" class="text-stone-600 focus:outline-none">
+            <span class="text-2xl">☰</span>
+        </button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav id="sidebar" class="hidden md:flex flex-col w-64 bg-white border-r border-stone-200 h-screen sticky top-0 z-40">
+        <div class="p-8 border-b border-stone-100">
+            <h1 class="text-2xl font-bold serif text-stone-800">DeutschTagebuch</h1>
+            <p class="text-xs text-stone-500 mt-1 uppercase tracking-wide">Daily Practice</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-6 flex flex-col gap-2 px-4">
+            <button onclick="navTo('dashboard')" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-left">
+                <span>📊</span> Dashboard
+            </button>
+            <button onclick="navTo('journal')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-left">
+                <span>✍️</span> Daily Journal
+            </button>
+            <button onclick="navTo('vocabulary')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-left">
+                <span>🗂️</span> Vocabulary Bank
+            </button>
+            <button onclick="navTo('phrases')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-left">
+                <span>💬</span> Common Phrases
+            </button>
+            <button onclick="navTo('motivation')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors text-left">
+                <span>💡</span> Motivation & Tips
+            </button>
+        </div>
+
+        <div class="p-6 bg-stone-50 border-t border-stone-200">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-xs font-bold text-stone-500 uppercase">Session Timer</span>
+                <span id="desktop-timer" class="text-amber-600 font-mono font-bold">00:00</span>
+            </div>
+            <div class="w-full bg-stone-200 rounded-full h-1.5">
+                <div id="timer-bar" class="bg-amber-500 h-1.5 rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+            <p class="text-[10px] text-stone-400 mt-2 text-center">Goal: 60 minutes</p>
+        </div>
+    </nav>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-stone-900 bg-opacity-50 z-40 hidden" onclick="toggleMobileMenu()">
+        <div class="bg-white w-64 h-full p-4 flex flex-col gap-2" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-bold serif text-lg">Menu</h2>
+                <button onclick="toggleMobileMenu()" class="text-stone-500 text-xl">✕</button>
+            </div>
+            <!-- Mobile nav items duplicated via JS or static -->
+            <button onclick="navTo('dashboard')" class="p-3 text-left hover:bg-stone-100 rounded">Dashboard</button>
+            <button onclick="navTo('journal')" class="p-3 text-left hover:bg-stone-100 rounded">Daily Journal</button>
+            <button onclick="navTo('vocabulary')" class="p-3 text-left hover:bg-stone-100 rounded">Vocabulary Bank</button>
+            <button onclick="navTo('phrases')" class="p-3 text-left hover:bg-stone-100 rounded">Common Phrases</button>
+            <button onclick="navTo('motivation')" class="p-3 text-left hover:bg-stone-100 rounded">Motivation</button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 bg-[#FDFBF7] h-[calc(100vh-60px)] md:h-screen overflow-y-auto overflow-x-hidden relative">
+        
+        <!-- SECTION: DASHBOARD -->
+        <section id="dashboard" class="p-6 md:p-12 max-w-7xl mx-auto animate-fade-in">
+            <header class="mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold serif text-stone-800 mb-2">Willkommen zurück!</h2>
+                <p class="text-stone-600 max-w-2xl">Consistency is key. You've practiced for <span id="dash-time" class="font-bold text-amber-600">0</span> minutes today. Your goal is to speak freely without fear.</p>
+            </header>
+
+            <!-- Quick Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-xl card-shadow border border-stone-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-sm text-stone-500 font-medium uppercase">Vocabulary Size</div>
+                        <div class="text-2xl">📚</div>
+                    </div>
+                    <div class="text-4xl font-bold text-stone-800" id="stat-vocab-count">0</div>
+                    <div class="text-sm text-green-600 mt-2 flex items-center gap-1">
+                        <span>+<span id="stat-vocab-new">0</span> new this session</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl card-shadow border border-stone-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-sm text-stone-500 font-medium uppercase">Journal Entries</div>
+                        <div class="text-2xl">✍️</div>
+                    </div>
+                    <div class="text-4xl font-bold text-stone-800" id="stat-entries">0</div>
+                    <div class="text-sm text-stone-400 mt-2">Keep writing every day!</div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl card-shadow border border-stone-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="text-sm text-stone-500 font-medium uppercase">Current Streak</div>
+                        <div class="text-2xl">🔥</div>
+                    </div>
+                    <div class="text-4xl font-bold text-amber-600">3 Days</div>
+                    <div class="text-sm text-stone-400 mt-2">Personal Best: 12 Days</div>
+                </div>
+            </div>
+
+            <!-- Visualization Section -->
+            <!-- Visualization & Content Choices: 
+                 Goal: Inform & Motivate.
+                 Method: Line Chart (Chart.js) to show learning trajectory over the week.
+                 Interaction: Hover for details.
+            -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl card-shadow border border-stone-100 flex flex-col">
+                    <h3 class="font-bold text-lg mb-6 text-stone-800">Words Learned (Last 7 Days)</h3>
+                    <div class="chart-container flex-1">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Daily Challenge / Word of the Day -->
+                <div class="bg-stone-800 text-white p-8 rounded-xl card-shadow flex flex-col justify-center">
+                    <div class="uppercase tracking-widest text-xs text-amber-500 font-bold mb-4">Wort des Tages</div>
+                    <h3 class="text-4xl serif font-bold mb-2">die Beharrlichkeit</h3>
+                    <p class="text-stone-400 italic text-lg mb-6">/be·harr·lich·keit/ • persistence, perseverance</p>
+                    <div class="bg-stone-700/50 p-4 rounded-lg border-l-4 border-amber-500">
+                        <p class="text-stone-300">"Beharrlichkeit führt zum Ziel."</p>
+                        <p class="text-stone-500 text-sm mt-1">(Persistence leads to the goal.)</p>
+                    </div>
+                    <button onclick="navTo('journal')" class="mt-8 bg-amber-600 hover:bg-amber-700 text-white py-3 px-6 rounded-lg font-medium transition-colors self-start">
+                        Use it in a sentence →
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: JOURNAL -->
+        <section id="journal" class="hidden p-6 md:p-12 max-w-7xl mx-auto h-full flex flex-col animate-fade-in">
+            <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold serif text-stone-800">Tägliches Schreiben</h2>
+                    <p class="text-stone-500">Write 10-15 sentences. Use the 'Process' button to extract vocabulary.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="clearJournal()" class="px-4 py-2 text-stone-500 hover:bg-stone-100 rounded-lg transition-colors">Clear</button>
+                    <button onclick="processEntry()" class="px-6 py-2 bg-stone-800 hover:bg-black text-white rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                        <span>✨</span> Process & Save
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[500px]">
+                <!-- English Input -->
+                <div class="flex flex-col h-full">
+                    <label class="block text-sm font-bold text-stone-500 uppercase mb-2">My Thoughts (English)</label>
+                    <textarea id="input-en" class="flex-1 w-full p-6 rounded-xl border border-stone-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none resize-none font-serif text-lg leading-relaxed bg-white card-shadow placeholder-stone-300 transition-all" placeholder="Today I want to talk about..."></textarea>
+                </div>
+
+                <!-- German Input -->
+                <div class="flex flex-col h-full">
+                    <label class="block text-sm font-bold text-stone-500 uppercase mb-2">Auf Deutsch (Practice Area)</label>
+                    <textarea id="input-de" class="flex-1 w-full p-6 rounded-xl border border-stone-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none resize-none font-serif text-lg leading-relaxed bg-white card-shadow placeholder-stone-300 transition-all" placeholder="Heute möchte ich über ... sprechen."></textarea>
+                </div>
+            </div>
+
+            <div id="feedback-area" class="mt-6 hidden p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 flex justify-between items-center">
+                <span>🎉 Entry saved! <span id="new-words-count" class="font-bold">0</span> new words added to your Vocabulary Bank.</span>
+                <button onclick="this.parentElement.classList.add('hidden')" class="text-green-600 font-bold hover:underline">Dismiss</button>
+            </div>
+        </section>
+
+        <!-- SECTION: VOCABULARY -->
+        <section id="vocabulary" class="hidden p-6 md:p-12 max-w-7xl mx-auto animate-fade-in">
+            <header class="mb-8">
+                <h2 class="text-3xl font-bold serif text-stone-800 mb-2">Wortschatz</h2>
+                <p class="text-stone-600 mb-6">Your personal dictionary. Words are automatically added here from your journal entries.</p>
+                
+                <!-- Search & Filter -->
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <div class="relative flex-1">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-stone-400">🔍</span>
+                        <input type="text" id="vocab-search" onkeyup="filterVocab()" placeholder="Search your words..." class="w-full pl-10 pr-4 py-3 rounded-lg border border-stone-200 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500">
+                    </div>
+                    <select id="vocab-sort" onchange="sortVocab()" class="px-4 py-3 rounded-lg border border-stone-200 bg-white focus:outline-none focus:border-amber-500">
+                        <option value="newest">Newest First</option>
+                        <option value="az">A-Z</option>
+                        <option value="za">Z-A</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- Vocabulary Grid -->
+            <!-- Visualization: Grid of cards.
+                 Interaction: Delete button on hover.
+            -->
+            <div id="vocab-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div id="empty-vocab-state" class="hidden text-center py-20">
+                <div class="text-5xl mb-4">📭</div>
+                <h3 class="text-xl font-bold text-stone-400">No words found</h3>
+                <p class="text-stone-400">Start writing in your journal to build your bank!</p>
+            </div>
+        </section>
+
+        <!-- SECTION: PHRASES -->
+        <section id="phrases" class="hidden p-6 md:p-12 max-w-7xl mx-auto animate-fade-in">
+            <header class="mb-10">
+                <h2 class="text-3xl font-bold serif text-stone-800 mb-2">Nützliche Sätze</h2>
+                <p class="text-stone-600">Common structures for conversational fluency. Click a card to reveal the German translation.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="phrases-container">
+                <!-- Content injected via JS -->
+            </div>
+        </section>
+
+        <!-- SECTION: MOTIVATION -->
+        <section id="motivation" class="hidden p-6 md:p-12 max-w-7xl mx-auto animate-fade-in">
+            <header class="mb-10">
+                <h2 class="text-3xl font-bold serif text-stone-800 mb-2">Tipps & Strategien</h2>
+                <p class="text-stone-600">Ideas to keep you motivated and immersed.</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Tip Card 1 -->
+                <div class="bg-white p-6 rounded-xl border-t-4 border-amber-500 card-shadow">
+                    <h3 class="font-bold text-lg mb-3">The 80/20 Rule</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed">Don't stress about perfect grammar for every single sentence. 20% of the vocabulary allows you to understand 80% of daily conversation. Focus on communication first, accuracy second.</p>
+                </div>
+
+                <!-- Tip Card 2 -->
+                <div class="bg-white p-6 rounded-xl border-t-4 border-blue-500 card-shadow">
+                    <h3 class="font-bold text-lg mb-3">Change Your Phone Language</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed">It sounds annoying, but changing your phone's interface to German forces you to learn practical, technical vocabulary (Settings, Network, Battery, etc.) passively every day.</p>
+                </div>
+
+                <!-- Tip Card 3 -->
+                <div class="bg-white p-6 rounded-xl border-t-4 border-green-500 card-shadow">
+                    <h3 class="font-bold text-lg mb-3">Talk to Yourself</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed">Narrate your day. "Ich mache jetzt Kaffee." "Der Bus ist spät." It feels silly, but it bridges the gap between thinking and speaking.</p>
+                </div>
+
+                <!-- Tip Card 4 -->
+                <div class="bg-white p-6 rounded-xl border-t-4 border-purple-500 card-shadow">
+                    <h3 class="font-bold text-lg mb-3">German Media Consumption</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed">Watch "Tagesschau" in 100 seconds. Listen to "Easy German" podcasts. Immersion is key to understanding the rhythm of the language.</p>
+                </div>
+
+                 <!-- Tip Card 5 -->
+                 <div class="bg-white p-6 rounded-xl border-t-4 border-red-500 card-shadow">
+                    <h3 class="font-bold text-lg mb-3">The "No English" Hour</h3>
+                    <p class="text-stone-600 text-sm leading-relaxed">Designate one hour where you are forbidden to speak, write, or think in English. If you don't know the word, circumscribe it (describe it using other words).</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- DATA STORAGE & STATE ---
+        const state = {
+            currentView: 'dashboard',
+            timer: 0,
+            timerInterval: null,
+            wordsLearned: [
+                { word: 'die Herausforderung', added: '2023-10-24' },
+                { word: 'entwickeln', added: '2023-10-25' },
+                { word: 'die Gewohnheit', added: '2023-10-25' },
+                { word: 'ungefähr', added: '2023-10-26' },
+                { word: 'das Ziel', added: '2023-10-27' },
+                { word: 'verbessern', added: '2023-10-27' }
+            ],
+            newWordsSession: 0,
+            journalEntries: 0
+        };
+
+        const phrasesData = [
+            { en: "I agree with you up to a point.", de: "Ich stimme dir bis zu einem gewissen Punkt zu." },
+            { en: "That depends on...", de: "Das kommt darauf an..." },
+            { en: "In my opinion...", de: "Meiner Meinung nach..." },
+            { en: "I am not sure if...", de: "Ich bin mir nicht sicher, ob..." },
+            { en: "Can you please explain that?", de: "Kannst du das bitte erklären?" },
+            { en: "On the one hand... on the other hand...", de: "Einerseits... andererseits..." },
+            { en: "It makes no difference to me.", de: "Das ist mir egal." },
+            { en: "I would like to suggest that...", de: "Ich möchte vorschlagen, dass..." }
+        ];
+
+        // --- NAVIGATION ---
+        function navTo(viewId) {
+            // Update UI State
+            document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+            
+            // Update Tab Styling
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            // Find button with matching onclick text (simplistic matching for this demo)
+            const btns = document.querySelectorAll('.nav-item');
+            btns.forEach(btn => {
+                if(btn.getAttribute('onclick').includes(viewId)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Mobile Menu Close
+            document.getElementById('mobile-menu').classList.add('hidden');
+            state.currentView = viewId;
+
+            // View specific refreshes
+            if(viewId === 'vocabulary') renderVocab();
+            if(viewId === 'dashboard') updateDashboard();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        document.getElementById('mobile-menu-btn').addEventListener('click', toggleMobileMenu);
+
+        // --- TIMER LOGIC ---
+        function startTimer() {
+            state.timerInterval = setInterval(() => {
+                state.timer++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(state.timer / 60);
+            const seconds = state.timer % 60;
+            const formatted = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('desktop-timer').innerText = formatted;
+            document.getElementById('mobile-timer').innerText = formatted;
+            
+            // Dashboard text update
+            const dashTime = document.getElementById('dash-time');
+            if(dashTime) dashTime.innerText = minutes;
+
+            // Progress Bar (Goal: 60 mins = 3600 seconds)
+            const percentage = Math.min((state.timer / 3600) * 100, 100);
+            document.getElementById('timer-bar').style.width = `${percentage}%`;
+        }
+
+        // --- CHART LOGIC ---
+        let progressChartInstance = null;
+
+        function initChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            // Mock data generation based on array length
+            const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const dataPoints = [5, 8, 12, 10, 15, 20, state.wordsLearned.length + 5]; // Mock trajectory
+
+            progressChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Vocabulary',
+                        data: dataPoints,
+                        borderColor: '#D97706', // Amber 600
+                        backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#D97706',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#44403C',
+                            bodyColor: '#44403C',
+                            borderColor: '#E7E5E4',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { borderDash: [4, 4], color: '#F5F5F4' },
+                            ticks: { font: { family: 'Inter' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { family: 'Inter' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDashboard() {
+            document.getElementById('stat-vocab-count').innerText = state.wordsLearned.length;
+            document.getElementById('stat-vocab-new').innerText = state.newWordsSession;
+            document.getElementById('stat-entries').innerText = state.journalEntries;
+            
+            if(progressChartInstance) {
+                // In a real app, we would push real historical data here
+                progressChartInstance.update();
+            }
+        }
+
+        // --- JOURNAL & VOCAB EXTRACTION LOGIC ---
+        function clearJournal() {
+            document.getElementById('input-en').value = '';
+            document.getElementById('input-de').value = '';
+        }
+
+        function processEntry() {
+            const deText = document.getElementById('input-de').value;
+            const enText = document.getElementById('input-en').value;
+            
+            if(!deText.trim()) {
+                alert("Bitte schreiben Sie etwas auf Deutsch!");
+                return;
+            }
+
+            // 1. Simple Tokenization (Split by space, remove punctuation)
+            const rawWords = deText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").split(/\s+/);
+            
+            // 2. Filter unique words and ignore short/common ones (very basic stopword list simulation)
+            const stopWords = ['ich', 'du', 'er', 'sie', 'es', 'wir', 'ihr', 'sie', 'und', 'aber', 'oder', 'denn', 'ist', 'bin', 'das', 'der', 'die', 'eine', 'ein', 'zu', 'in', 'im'];
+            let addedCount = 0;
+
+            rawWords.forEach(word => {
+                const cleanWord = word.trim();
+                // Check if word exists (case insensitive for simplicity, though German Nouns need Case)
+                const exists = state.wordsLearned.some(w => w.word.toLowerCase() === cleanWord.toLowerCase());
+                
+                if(cleanWord.length > 3 && !stopWords.includes(cleanWord.toLowerCase()) && !exists) {
+                    state.wordsLearned.push({
+                        word: cleanWord,
+                        added: new Date().toISOString().split('T')[0]
+                    });
+                    addedCount++;
+                }
+            });
+
+            // Update State
+            state.newWordsSession += addedCount;
+            state.journalEntries++;
+
+            // UI Feedback
+            document.getElementById('new-words-count').innerText = addedCount;
+            document.getElementById('feedback-area').classList.remove('hidden');
+            
+            // Clear inputs logic (optional, keeping them for review for now)
+        }
+
+        // --- VOCABULARY UI LOGIC ---
+        function renderVocab(filterText = '') {
+            const container = document.getElementById('vocab-grid');
+            container.innerHTML = '';
+            
+            let displayList = state.wordsLearned;
+
+            // Filter
+            if(filterText) {
+                displayList = displayList.filter(w => w.word.toLowerCase().includes(filterText.toLowerCase()));
+            }
+
+            // Sort (Current Logic: Newest is at end of array)
+            const sortMode = document.getElementById('vocab-sort').value;
+            if (sortMode === 'newest') displayList = [...displayList].reverse();
+            if (sortMode === 'az') displayList = [...displayList].sort((a,b) => a.word.localeCompare(b.word));
+            if (sortMode === 'za') displayList = [...displayList].sort((a,b) => b.word.localeCompare(a.word));
+
+            if(displayList.length === 0) {
+                document.getElementById('empty-vocab-state').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-vocab-state').classList.add('hidden');
+                displayList.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-4 rounded-lg border border-stone-200 card-shadow hover:border-amber-400 transition-colors cursor-pointer group relative';
+                    div.innerHTML = `
+                        <div class="font-bold text-lg text-stone-800">${item.word}</div>
+                        <div class="text-xs text-stone-400 mt-2">Added: ${item.added}</div>
+                        <button onclick="deleteWord('${item.word}')" class="absolute top-2 right-2 text-stone-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">×</button>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        function filterVocab() {
+            const text = document.getElementById('vocab-search').value;
+            renderVocab(text);
+        }
+
+        function sortVocab() {
+            filterVocab(); // Re-render with current filter text
+        }
+
+        function deleteWord(word) {
+            state.wordsLearned = state.wordsLearned.filter(w => w.word !== word);
+            renderVocab(document.getElementById('vocab-search').value);
+            updateDashboard();
+        }
+
+        // --- PHRASES UI LOGIC ---
+        function initPhrases() {
+            const container = document.getElementById('phrases-container');
+            phrasesData.forEach((phrase, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white rounded-xl card-shadow overflow-hidden border border-stone-200 cursor-pointer group';
+                div.onclick = () => toggleTranslation(index);
+                
+                div.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold text-amber-600 uppercase tracking-wide">English</span>
+                            <span class="text-xs text-stone-400">Click to reveal</span>
+                        </div>
+                        <p class="text-lg text-stone-700 font-medium">${phrase.en}</p>
+                    </div>
+                    <div id="phrase-de-${index}" class="bg-stone-50 p-6 border-t border-stone-100 hidden">
+                        <div class="text-xs font-bold text-stone-500 uppercase tracking-wide mb-1">Deutsch</div>
+                        <p class="text-xl serif text-stone-900">${phrase.de}</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleTranslation(index) {
+            const el = document.getElementById(`phrase-de-${index}`);
+            el.classList.toggle('hidden');
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            startTimer();
+            initChart();
+            updateDashboard();
+            initPhrases();
+            renderVocab();
+        };
+
+    </script>
+</body>
+</html>
