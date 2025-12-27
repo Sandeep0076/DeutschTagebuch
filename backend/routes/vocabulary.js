@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../database');
 const { getVocabularyStats } = require('../services/vocabulary-extractor');
+const { translateToGerman } = require('../services/translation');
 
 /**
  * GET /api/vocabulary
@@ -77,9 +78,9 @@ router.get('/stats', (req, res) => {
  * POST /api/vocabulary
  * Manually add a vocabulary word
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { word } = req.body;
+    const { word, meaning } = req.body;
 
     if (!word || typeof word !== 'string' || word.trim().length === 0) {
       return res.status(400).json({
@@ -101,17 +102,29 @@ router.post('/', (req, res) => {
       });
     }
 
+    // If meaning not provided, try to get translation
+    let wordMeaning = meaning?.trim() || null;
+    if (!wordMeaning) {
+      try {
+        wordMeaning = await translateToGerman(cleanWord);
+      } catch (error) {
+        console.error('Error fetching meaning:', error);
+        // Continue without meaning if translation fails
+      }
+    }
+
     // Insert new word
     const result = db.prepare(`
-      INSERT INTO vocabulary (word, first_seen, frequency, last_reviewed)
-      VALUES (?, datetime('now'), 1, datetime('now'))
-    `).run(cleanWord);
+      INSERT INTO vocabulary (word, meaning, first_seen, frequency, last_reviewed)
+      VALUES (?, ?, datetime('now'), 1, datetime('now'))
+    `).run(cleanWord, wordMeaning);
 
     res.status(201).json({
       success: true,
       data: {
         id: result.lastInsertRowid,
         word: cleanWord,
+        meaning: wordMeaning,
         first_seen: new Date().toISOString(),
         frequency: 1
       }
@@ -154,13 +167,69 @@ router.delete('/:id', (req, res) => {
 });
 
 /**
+ * GET /api/vocabulary/:id/meaning
+ * Get or fetch meaning for a specific word
+ */
+router.get('/:id/meaning', async (req, res) => {
+  try {
+    const word = db.prepare('SELECT * FROM vocabulary WHERE id = ?').get(req.params.id);
+
+    if (!word) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vocabulary word not found'
+      });
+    }
+
+    // If meaning already exists, return it
+    if (word.meaning) {
+      return res.json({
+        success: true,
+        data: {
+          word: word.word,
+          meaning: word.meaning
+        }
+      });
+    }
+
+    // Otherwise, fetch translation
+    try {
+      const meaning = await translateToGerman(word.word);
+      
+      // Update database with the fetched meaning
+      db.prepare('UPDATE vocabulary SET meaning = ? WHERE id = ?').run(meaning, req.params.id);
+
+      res.json({
+        success: true,
+        data: {
+          word: word.word,
+          meaning: meaning
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching meaning:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch word meaning'
+      });
+    }
+  } catch (error) {
+    console.error('Error getting word meaning:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get word meaning'
+    });
+  }
+});
+
+/**
  * PUT /api/vocabulary/:id/review
  * Mark a word as reviewed (updates last_reviewed timestamp)
  */
 router.put('/:id/review', (req, res) => {
   try {
     const result = db.prepare(`
-      UPDATE vocabulary 
+      UPDATE vocabulary
       SET last_reviewed = datetime('now')
       WHERE id = ?
     `).run(req.params.id);

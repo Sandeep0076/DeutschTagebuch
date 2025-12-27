@@ -8,7 +8,8 @@ const state = {
     timer: 0,
     timerInterval: null,
     sessionStart: Date.now(),
-    isOnline: true
+    isOnline: true,
+    editingEntryId: null
 };
 
 // --- API HELPER FUNCTIONS ---
@@ -75,6 +76,7 @@ function navTo(viewId) {
     if (viewId === 'vocabulary') loadVocabulary();
     if (viewId === 'dashboard') loadDashboard();
     if (viewId === 'phrases') loadPhrases();
+    if (viewId === 'journal') loadJournalHistory();
 }
 
 function toggleMobileMenu() {
@@ -203,8 +205,13 @@ async function loadChart() {
 
 // --- JOURNAL ---
 function clearJournal() {
+    state.editingEntryId = null;
     document.getElementById('input-en').value = '';
     document.getElementById('input-de').value = '';
+
+    // Reset save button text
+    const saveBtn = document.querySelector('button[onclick="processEntry()"]');
+    if (saveBtn) saveBtn.innerHTML = '<span>✨</span> Save Entry';
 }
 
 async function translateText() {
@@ -259,15 +266,28 @@ async function processEntry() {
 
     try {
         const sessionDuration = Math.floor(state.timer / 60);
+        let result;
 
-        const result = await apiCall('/journal/entry', {
-            method: 'POST',
-            body: JSON.stringify({
-                english_text: enText,
-                german_text: deText,
-                session_duration: sessionDuration
-            })
-        });
+        if (state.editingEntryId) {
+            // Update existing entry
+            result = await apiCall(`/journal/entry/${state.editingEntryId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    english_text: enText,
+                    german_text: deText
+                })
+            });
+        } else {
+            // Create new entry
+            result = await apiCall('/journal/entry', {
+                method: 'POST',
+                body: JSON.stringify({
+                    english_text: enText,
+                    german_text: deText,
+                    session_duration: sessionDuration
+                })
+            });
+        }
 
         // Show success feedback
         document.getElementById('new-words-count').innerText = result.data.new_words.length;
@@ -280,11 +300,123 @@ async function processEntry() {
         if (state.currentView === 'dashboard') {
             await loadDashboard();
         }
+
+        // Reload journal history 
+        await loadJournalHistory();
     } catch (error) {
         alert('Failed to save entry: ' + error.message);
     } finally {
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
+    }
+}
+
+// --- JOURNAL HISTORY ---
+async function loadJournalHistory() {
+    try {
+        const sort = document.getElementById('journal-sort').value;
+        const result = await apiCall(`/journal/entries?title=&sort=${sort}&limit=50`);
+        renderJournalHistory(result.data);
+    } catch (error) {
+        console.error('Error loading journal history:', error);
+        document.getElementById('journal-history-list').innerHTML =
+            '<div class="text-center py-10 opacity-50 text-sm text-red-500">Failed to load history</div>';
+    }
+}
+
+function renderJournalHistory(entries) {
+    const container = document.getElementById('journal-history-list');
+    container.innerHTML = '';
+
+    if (entries.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-10 opacity-50">
+                <div class="text-4xl mb-2">📝</div>
+                <div class="text-sm">No entries yet</div>
+            </div>`;
+        return;
+    }
+
+    entries.forEach(entry => {
+        const date = new Date(entry.created_at);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateString = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+
+        // Preview text (German preferred, fallback to English)
+        const previewText = (entry.german_text || entry.english_text).substring(0, 60) + '...';
+
+        const div = document.createElement('div');
+        div.className = 'p-4 rounded-xl bg-white/50 border border-white/60 hover:bg-white hover:shadow-md transition-all cursor-pointer group';
+        div.onclick = () => viewJournalEntry(entry.id);
+
+        div.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <div class="text-xs font-bold text-blue-600 uppercase tracking-widest">${dayName}</div>
+                    <div class="text-sm font-bold text-slate-700">${dateString}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] bg-slate-100 px-2 py-1 rounded-full text-slate-500 font-mono">${entry.word_count} words</span>
+                    <button onclick="deleteJournalEntry(event, ${entry.id})" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Delete Entry">🗑️</button>
+                </div>
+            </div>
+            <p class="text-xs text-slate-500 italic leading-relaxed line-clamp-2 group-hover:text-slate-700 transition-colors">
+                "${previewText}"
+            </p>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function viewJournalEntry(id) {
+    try {
+        // Option to verify if user wants to overwrite current unsaved text? 
+        // For now, we assume viewing history overwrites or we could ask.
+        // Let's just load it.
+        const result = await apiCall(`/journal/entry/${id}`);
+        const entry = result.data;
+
+        document.getElementById('input-en').value = entry.english_text;
+        document.getElementById('input-de').value = entry.german_text;
+
+        // Scroll to top of journal inputs on mobile if needed
+        if (window.innerWidth < 1024) {
+            document.getElementById('input-en').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Set editing state
+        state.editingEntryId = id;
+        const saveBtn = document.querySelector('button[onclick="processEntry()"]');
+        if (saveBtn) saveBtn.innerHTML = '<span>🔄</span> Update Entry';
+
+    } catch (error) {
+        console.error('Error loading entry:', error);
+        alert('Failed to load entry');
+    }
+}
+
+async function deleteJournalEntry(event, id) {
+    event.stopPropagation();
+
+    if (!confirm('Are you sure you want to delete this journal entry?')) return;
+
+    try {
+        await apiCall(`/journal/entry/${id}`, { method: 'DELETE' });
+
+        // If we deleted the currently edited entry, clear the form
+        if (state.editingEntryId === id) {
+            clearJournal();
+        }
+
+        await loadJournalHistory();
+
+        // Refresh dashboard stats if active
+        if (state.currentView === 'dashboard') {
+            await loadDashboard();
+        }
+    } catch (error) {
+        console.error('Error deleting entry:', error);
+        alert('Failed to delete entry');
     }
 }
 
@@ -317,9 +449,17 @@ function renderVocabulary(words) {
             const frequency = item.frequency > 1 ? `<div class="text-xs text-blue-600 mt-2 font-mono font-bold">Used ${item.frequency}x</div>` : '';
 
             div.innerHTML = `
-                <div class="font-bold text-xl text-slate-800 mb-1">${item.word}</div>
-                <div class="text-xs text-slate-500 opacity-80">Added: ${date}</div>
-                ${frequency}
+                <div onclick="toggleWordMeaning(${item.id}, event)" class="cursor-pointer">
+                    <div class="font-bold text-xl text-slate-800 mb-1">${item.word}</div>
+                    <div class="text-xs text-slate-500 opacity-80">Added: ${date}</div>
+                    ${frequency}
+                    <div id="meaning-${item.id}" class="hidden mt-3 pt-3 border-t border-slate-200">
+                        <div class="text-xs text-blue-500 font-bold uppercase tracking-wide mb-1">Meaning</div>
+                        <div class="text-sm text-slate-700 italic" id="meaning-text-${item.id}">
+                            ${item.meaning || '<span class="text-slate-400">Loading...</span>'}
+                        </div>
+                    </div>
+                </div>
                 <button onclick="deleteWord(${item.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xl">×</button>
             `;
             container.appendChild(div);
@@ -333,6 +473,81 @@ function filterVocab() {
 
 function sortVocab() {
     loadVocabulary();
+}
+
+async function toggleWordMeaning(id, event) {
+    event.stopPropagation();
+    
+    const meaningDiv = document.getElementById(`meaning-${id}`);
+    const meaningText = document.getElementById(`meaning-text-${id}`);
+    
+    if (meaningDiv.classList.contains('hidden')) {
+        meaningDiv.classList.remove('hidden');
+        
+        // If meaning is not loaded, fetch it
+        if (meaningText.innerHTML.includes('Loading...') || meaningText.innerHTML.includes('text-slate-400')) {
+            try {
+                const result = await apiCall(`/vocabulary/${id}/meaning`);
+                meaningText.innerHTML = result.data.meaning || '<span class="text-slate-400">No meaning available</span>';
+            } catch (error) {
+                console.error('Error fetching meaning:', error);
+                meaningText.innerHTML = '<span class="text-red-400">Failed to load meaning</span>';
+            }
+        }
+    } else {
+        meaningDiv.classList.add('hidden');
+    }
+}
+
+async function addWord() {
+    const wordInput = document.getElementById('new-word-input');
+    const meaningInput = document.getElementById('new-word-meaning');
+    
+    const word = wordInput.value.trim();
+    const meaning = meaningInput.value.trim();
+    
+    if (!word) {
+        alert('Please enter a word!');
+        return;
+    }
+    
+    try {
+        const payload = { word };
+        if (meaning) {
+            payload.meaning = meaning;
+        }
+        
+        await apiCall('/vocabulary', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        // Clear inputs
+        wordInput.value = '';
+        meaningInput.value = '';
+        
+        // Reload vocabulary
+        await loadVocabulary();
+        
+        // Show success feedback
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+        successMsg.innerHTML = '✓ Word added successfully!';
+        document.body.appendChild(successMsg);
+        
+        setTimeout(() => successMsg.remove(), 3000);
+        
+        // Update dashboard if visible
+        if (state.currentView === 'dashboard') {
+            await loadDashboard();
+        }
+    } catch (error) {
+        if (error.message.includes('already exists')) {
+            alert('This word is already in your vocabulary!');
+        } else {
+            alert('Failed to add word: ' + error.message);
+        }
+    }
 }
 
 async function deleteWord(id) {

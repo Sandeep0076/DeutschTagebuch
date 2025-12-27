@@ -1,4 +1,5 @@
 const db = require('../database');
+const { translateToGerman } = require('./translation');
 
 // Common German stop words to filter out
 const STOP_WORDS = new Set([
@@ -16,9 +17,9 @@ const STOP_WORDS = new Set([
 /**
  * Extract vocabulary from German text
  * @param {string} germanText - The German text to extract words from
- * @returns {Array} Array of new words added
+ * @returns {Promise<Array>} Array of new words added
  */
-function extractVocabulary(germanText) {
+async function extractVocabulary(germanText) {
   if (!germanText || typeof germanText !== 'string') {
     return [];
   }
@@ -49,20 +50,32 @@ function extractVocabulary(germanText) {
       if (existing) {
         // Update frequency and last_reviewed
         db.prepare(`
-          UPDATE vocabulary 
-          SET frequency = frequency + 1, last_reviewed = ? 
+          UPDATE vocabulary
+          SET frequency = frequency + 1, last_reviewed = ?
           WHERE id = ?
         `).run(today, existing.id);
       } else {
-        // Insert new word
+        // Try to get meaning for new words (but don't block if it fails)
+        let meaning = null;
+        try {
+          meaning = await translateToGerman(cleanWord);
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Failed to get meaning for "${cleanWord}":`, error.message);
+          // Continue without meaning if translation fails
+        }
+
+        // Insert new word with meaning
         const result = db.prepare(`
-          INSERT INTO vocabulary (word, first_seen, frequency, last_reviewed)
-          VALUES (?, ?, 1, ?)
-        `).run(cleanWord, today, today);
+          INSERT INTO vocabulary (word, meaning, first_seen, frequency, last_reviewed)
+          VALUES (?, ?, ?, 1, ?)
+        `).run(cleanWord, meaning, today, today);
 
         newWords.push({
           id: result.lastInsertRowid,
           word: cleanWord,
+          meaning: meaning,
           first_seen: today
         });
       }

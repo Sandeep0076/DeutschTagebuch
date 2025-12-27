@@ -13,9 +13,19 @@ router.get('/entries', (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    const sort = req.query.sort || 'newest';
+    let orderBy = 'created_at DESC';
+
+    switch (sort) {
+      case 'oldest': orderBy = 'created_at ASC'; break;
+      case 'longest': orderBy = 'word_count DESC'; break;
+      case 'shortest': orderBy = 'word_count ASC'; break;
+      default: orderBy = 'created_at DESC';
+    }
+
     const entries = db.prepare(`
       SELECT * FROM journal_entries 
-      ORDER BY created_at DESC 
+      ORDER BY ${orderBy} 
       LIMIT ? OFFSET ?
     `).all(limit, offset);
 
@@ -72,7 +82,7 @@ router.get('/entry/:id', (req, res) => {
  * POST /api/journal/entry
  * Create a new journal entry
  */
-router.post('/entry', (req, res) => {
+router.post('/entry', async (req, res) => {
   try {
     const { english_text, german_text, session_duration } = req.body;
 
@@ -93,8 +103,8 @@ router.post('/entry', (req, res) => {
       VALUES (?, ?, ?, ?)
     `).run(english_text, german_text, wordCount, session_duration || 0);
 
-    // Extract vocabulary from German text
-    const newWords = extractVocabulary(german_text);
+    // Extract vocabulary from German text (async)
+    const newWords = await extractVocabulary(german_text);
 
     // Update progress stats for today
     const today = new Date().toISOString().split('T')[0];
@@ -102,8 +112,8 @@ router.post('/entry', (req, res) => {
 
     if (existingStats) {
       db.prepare(`
-        UPDATE progress_stats 
-        SET words_learned = words_learned + ?, 
+        UPDATE progress_stats
+        SET words_learned = words_learned + ?,
             entries_written = entries_written + 1,
             minutes_practiced = minutes_practiced + ?
         WHERE date = ?
@@ -139,7 +149,7 @@ router.post('/entry', (req, res) => {
  * PUT /api/journal/entry/:id
  * Update a journal entry
  */
-router.put('/entry/:id', (req, res) => {
+router.put('/entry/:id', async (req, res) => {
   try {
     const { english_text, german_text } = req.body;
 
@@ -157,7 +167,7 @@ router.put('/entry/:id', (req, res) => {
 
     // Update entry
     db.prepare(`
-      UPDATE journal_entries 
+      UPDATE journal_entries
       SET english_text = ?, german_text = ?, word_count = ?
       WHERE id = ?
     `).run(
@@ -167,9 +177,10 @@ router.put('/entry/:id', (req, res) => {
       req.params.id
     );
 
-    // If German text changed, re-extract vocabulary
+    // If German text changed, re-extract vocabulary (async)
+    let newWords = [];
     if (german_text && german_text !== existing.german_text) {
-      extractVocabulary(german_text);
+      newWords = await extractVocabulary(german_text);
     }
 
     res.json({
@@ -178,7 +189,8 @@ router.put('/entry/:id', (req, res) => {
         id: req.params.id,
         english_text: english_text || existing.english_text,
         german_text: german_text || existing.german_text,
-        word_count: wordCount
+        word_count: wordCount,
+        new_words: newWords
       }
     });
   } catch (error) {

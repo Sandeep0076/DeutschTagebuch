@@ -26,6 +26,7 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS vocabulary (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       word TEXT UNIQUE NOT NULL,
+      meaning TEXT,
       first_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
       frequency INTEGER DEFAULT 1,
       last_reviewed DATETIME DEFAULT CURRENT_TIMESTAMP
