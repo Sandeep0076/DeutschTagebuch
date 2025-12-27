@@ -121,6 +121,10 @@ router.post('/entry', async (req, res) => {
       });
     }
 
+    // Split text into bullets (by newlines)
+    const englishBullets = english_text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+    const germanBullets = german_text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+
     // Count words in German text
     const wordCount = german_text.trim().split(/\s+/).length;
 
@@ -128,8 +132,8 @@ router.post('/entry', async (req, res) => {
     const { data: newEntry, error } = await supabase
       .from('journal_entries')
       .insert({
-        english_text,
-        german_text,
+        english_bullets: englishBullets,
+        german_bullets: germanBullets,
         word_count: wordCount,
         session_duration: session_duration || 0
       })
@@ -212,17 +216,24 @@ router.put('/entry/:id', async (req, res) => {
       throw fetchError;
     }
 
-    // Count words
-    const wordCount = german_text ? german_text.trim().split(/\s+/).length : existing.word_count;
+    // Prepare update data
+    const updateData = {};
+    
+    if (english_text) {
+      updateData.english_text = english_text;
+      updateData.english_bullets = JSON.stringify(splitIntoBullets(english_text));
+    }
+    
+    if (german_text) {
+      updateData.german_text = german_text;
+      updateData.german_bullets = JSON.stringify(splitIntoBullets(german_text));
+      updateData.word_count = german_text.trim().split(/\s+/).length;
+    }
 
     // Update entry
     const { data: updated, error } = await supabase
       .from('journal_entries')
-      .update({
-        english_text: english_text || existing.english_text,
-        german_text: german_text || existing.german_text,
-        word_count: wordCount
-      })
+      .update(updateData)
       .eq('id', req.params.id)
       .select()
       .single();

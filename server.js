@@ -3,6 +3,17 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+// Import route modules
+const journalRoutes = require('./backend/routes/journal');
+const vocabularyRoutes = require('./backend/routes/vocabulary');
+const phrasesRoutes = require('./backend/routes/phrases');
+const progressRoutes = require('./backend/routes/progress');
+const translateRoutes = require('./backend/routes/translate');
+const settingsRoutes = require('./backend/routes/settings');
+const dataRoutes = require('./backend/routes/data');
+const searchRoutes = require('./backend/routes/search');
+const notesRoutes = require('./backend/routes/notes');
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,18 +23,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (frontend)
-app.use(express.static(path.join(__dirname)));
-
-// Import routes
-const journalRoutes = require('./backend/routes/journal');
-const vocabularyRoutes = require('./backend/routes/vocabulary');
-const phrasesRoutes = require('./backend/routes/phrases');
-const progressRoutes = require('./backend/routes/progress');
-const translateRoutes = require('./backend/routes/translate');
-const settingsRoutes = require('./backend/routes/settings');
-const dataRoutes = require('./backend/routes/data');
-
 // API Routes
 app.use('/api/journal', journalRoutes);
 app.use('/api/vocabulary', vocabularyRoutes);
@@ -32,15 +31,22 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/data', dataRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  console.log('Health check requested - notes route should be active');
   res.json({
     success: true,
     message: 'DeutschTagebuch API is running',
     timestamp: new Date().toISOString()
   });
 });
+
+// Serve static files (frontend)
+app.use(express.static(path.join(__dirname)));
+
 
 // Serve index.html for all other routes (SPA support)
 app.get('*', (req, res) => {
@@ -80,6 +86,7 @@ app.listen(PORT, () => {
   console.log('  - GET  /api/settings');
   console.log('  - GET  /api/data/export');
   console.log('  - POST /api/data/import');
+  console.log('  - GET  /api/search');
   console.log('');
   console.log('Press Ctrl+C to stop the server');
   console.log('════════════════════════════════════════════');

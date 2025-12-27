@@ -9,7 +9,9 @@ const state = {
     timerInterval: null,
     sessionStart: Date.now(),
     isOnline: true,
-    editingEntryId: null
+    editingEntryId: null,
+    englishBullets: [],
+    germanBullets: []
 };
 
 // --- API HELPER FUNCTIONS ---
@@ -76,7 +78,11 @@ function navTo(viewId) {
     if (viewId === 'vocabulary') loadVocabulary();
     if (viewId === 'dashboard') loadDashboard();
     if (viewId === 'phrases') loadPhrases();
-    if (viewId === 'journal') loadJournalHistory();
+    if (viewId === 'journal') {
+        initializeBulletPoints();
+        loadJournalHistory();
+    }
+    if (viewId === 'motivation') loadNotes();
 }
 
 function toggleMobileMenu() {
@@ -203,11 +209,122 @@ async function loadChart() {
     }
 }
 
+// --- BULLET POINT MANAGEMENT ---
+function createBulletInput(container, language, initialText = '') {
+    const bulletDiv = document.createElement('div');
+    bulletDiv.className = 'flex items-start gap-2 group';
+
+    const bullet = document.createElement('span');
+    bullet.className = 'text-slate-400 mt-2 select-none';
+    bullet.textContent = '•';
+
+    const input = document.createElement('textarea');
+    input.className = 'flex-1 bg-transparent border-none outline-none resize-none text-lg leading-relaxed placeholder-slate-300 min-h-[2rem] text-slate-700';
+    input.placeholder = language === 'english' ? 'Write a sentence...' : 'Schreiben Sie einen Satz...';
+    input.value = initialText;
+    input.rows = 1;
+
+    // Auto-resize textarea
+    input.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+
+    // Handle Enter key to create new bullet
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (this.value.trim()) {
+                addBulletPoint(language);
+            }
+        }
+    });
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity mt-2 text-xl';
+    deleteBtn.innerHTML = '×';
+    deleteBtn.onclick = () => {
+        const allBullets = container.querySelectorAll('.flex.items-start.gap-2');
+        if (allBullets.length > 1) {
+            bulletDiv.remove();
+        } else {
+            input.value = '';
+        }
+    };
+
+    bulletDiv.appendChild(bullet);
+    bulletDiv.appendChild(input);
+    bulletDiv.appendChild(deleteBtn);
+
+    return bulletDiv;
+}
+
+function addBulletPoint(language, text = '') {
+    const container = language === 'english'
+        ? document.getElementById('english-bullets-container')
+        : document.getElementById('german-bullets-container');
+
+    const bulletInput = createBulletInput(container, language, text);
+    container.appendChild(bulletInput);
+
+    // Focus the new input
+    const textarea = bulletInput.querySelector('textarea');
+    textarea.focus();
+
+    // Trigger auto-resize
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function initializeBulletPoints() {
+    // Clear existing
+    const enContainer = document.getElementById('english-bullets-container');
+    const deContainer = document.getElementById('german-bullets-container');
+
+    if (enContainer) enContainer.innerHTML = '';
+    if (deContainer) deContainer.innerHTML = '';
+
+    // Add initial bullet points
+    addBulletPoint('english');
+    addBulletPoint('german');
+}
+
+function getBulletsText(language) {
+    const container = language === 'english'
+        ? document.getElementById('english-bullets-container')
+        : document.getElementById('german-bullets-container');
+
+    if (!container) return [];
+
+    const inputs = container.querySelectorAll('textarea');
+    const bullets = Array.from(inputs)
+        .map(input => input.value.trim())
+        .filter(text => text.length > 0);
+
+    return bullets;
+}
+
+function setBullets(language, bullets) {
+    const container = language === 'english'
+        ? document.getElementById('english-bullets-container')
+        : document.getElementById('german-bullets-container');
+
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (bullets && bullets.length > 0) {
+        bullets.forEach(text => addBulletPoint(language, text));
+    } else {
+        addBulletPoint(language);
+    }
+}
+
 // --- JOURNAL ---
 function clearJournal() {
     state.editingEntryId = null;
-    document.getElementById('input-en').value = '';
-    document.getElementById('input-de').value = '';
+    initializeBulletPoints();
 
     // Reset save button text
     const saveBtn = document.querySelector('button[onclick="processEntry()"]');
@@ -215,9 +332,9 @@ function clearJournal() {
 }
 
 async function translateText() {
-    const enText = document.getElementById('input-en').value;
+    const englishBullets = getBulletsText('english');
 
-    if (!enText.trim()) {
+    if (englishBullets.length === 0) {
         alert('Please write something in English first!');
         return;
     }
@@ -228,15 +345,25 @@ async function translateText() {
     translateBtn.disabled = true;
 
     try {
+        // Join all bullets with newlines for single translation
+        const combinedText = englishBullets.join('\n');
+        
         const result = await apiCall('/translate', {
             method: 'POST',
             body: JSON.stringify({
-                text: enText,
+                text: combinedText,
                 multiSentence: true
             })
         });
 
-        document.getElementById('input-de').value = result.data.translated;
+        // Split the translated text back into bullets
+        const translatedBullets = result.data.translated
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        // Set the translated bullets
+        setBullets('german', translatedBullets);
     } catch (error) {
         alert('Translation failed: ' + error.message);
     } finally {
@@ -342,8 +469,11 @@ function renderJournalHistory(entries) {
         const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
         const dateString = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
 
-        // Preview text (German preferred, fallback to English)
-        const previewText = (entry.german_text || entry.english_text).substring(0, 60) + '...';
+        // Preview text from first bullet (German preferred, fallback to English)
+        const germanBullets = entry.german_bullets || [];
+        const englishBullets = entry.english_bullets || [];
+        const firstBullet = germanBullets[0] || englishBullets[0] || '';
+        const previewText = firstBullet.substring(0, 60) + (firstBullet.length > 60 ? '...' : '');
 
         const div = document.createElement('div');
         div.className = 'p-4 rounded-xl bg-white/50 border border-white/60 hover:bg-white hover:shadow-md transition-all cursor-pointer group';
@@ -426,8 +556,15 @@ async function loadVocabulary() {
         const searchText = document.getElementById('vocab-search').value;
         const sortMode = document.getElementById('vocab-sort').value;
 
-        const result = await apiCall(`/vocabulary?search=${encodeURIComponent(searchText)}&sort=${sortMode}`);
-        renderVocabulary(result.data);
+        // If there's a search query, use the unified search endpoint
+        if (searchText && searchText.trim().length > 0) {
+            const result = await apiCall(`/search?q=${encodeURIComponent(searchText)}`);
+            renderSearchResults(result.data, searchText);
+        } else {
+            // Otherwise, load all vocabulary with sorting
+            const result = await apiCall(`/vocabulary?sort=${sortMode}`);
+            renderVocabulary(result.data);
+        }
     } catch (error) {
         console.error('Error loading vocabulary:', error);
     }
@@ -467,6 +604,131 @@ function renderVocabulary(words) {
     }
 }
 
+function renderSearchResults(searchData, searchTerm) {
+    const container = document.getElementById('vocab-grid');
+    container.innerHTML = '';
+
+    const { vocabulary, journal_sentences, counts } = searchData;
+    const totalResults = counts.vocabulary + counts.journal_sentences;
+
+    if (totalResults === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-20 text-slate-400">
+                <div class="text-6xl mb-4 grayscale opacity-50">🔍</div>
+                <h3 class="text-2xl font-bold mb-2">No results found</h3>
+                <p>Try searching for a different word or phrase</p>
+            </div>
+        `;
+        document.getElementById('empty-vocab-state').classList.add('hidden');
+        return;
+    }
+
+    document.getElementById('empty-vocab-state').classList.add('hidden');
+
+    // Add search results header
+    const header = document.createElement('div');
+    header.className = 'col-span-full glass-card p-6 rounded-[24px] !bg-blue-50/80 border-blue-100';
+    header.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Search Results for "${searchTerm}"</h3>
+                <p class="text-sm text-slate-600">
+                    Found ${counts.vocabulary} vocabulary word${counts.vocabulary !== 1 ? 's' : ''}
+                    and ${counts.journal_sentences} sentence${counts.journal_sentences !== 1 ? 's' : ''} from journals
+                </p>
+            </div>
+            <button onclick="clearSearch()" class="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all">
+                Clear Search
+            </button>
+        </div>
+    `;
+    container.appendChild(header);
+
+    // Render vocabulary results
+    if (vocabulary.length > 0) {
+        const vocabHeader = document.createElement('div');
+        vocabHeader.className = 'col-span-full mt-4';
+        vocabHeader.innerHTML = `
+            <h4 class="text-md font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <span class="text-xl">📚</span> Vocabulary Words (${counts.vocabulary})
+            </h4>
+        `;
+        container.appendChild(vocabHeader);
+
+        vocabulary.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'glass-card p-4 rounded-[20px] relative cursor-pointer group hover:bg-white/90 transition-all !bg-white/50 border border-white/60';
+
+            const date = new Date(item.first_seen).toLocaleDateString();
+            const frequency = item.frequency > 1 ? `<div class="text-xs text-blue-600 mt-2 font-mono font-bold">Used ${item.frequency}x</div>` : '';
+
+            div.innerHTML = `
+                <div onclick="toggleWordMeaning(${item.id}, event)" class="cursor-pointer">
+                    <div class="font-bold text-xl text-slate-800 mb-1">${item.word}</div>
+                    <div class="text-xs text-slate-500 opacity-80">Added: ${date}</div>
+                    ${frequency}
+                    <div id="meaning-${item.id}" class="hidden mt-3 pt-3 border-t border-slate-200">
+                        <div class="text-xs text-blue-500 font-bold uppercase tracking-wide mb-1">Meaning</div>
+                        <div class="text-sm text-slate-700 italic" id="meaning-text-${item.id}">
+                            ${item.meaning || '<span class="text-slate-400">Loading...</span>'}
+                        </div>
+                    </div>
+                </div>
+                <button onclick="deleteWord(${item.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xl">×</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // Render journal sentence results
+    if (journal_sentences.length > 0) {
+        const journalHeader = document.createElement('div');
+        journalHeader.className = 'col-span-full mt-6';
+        journalHeader.innerHTML = `
+            <h4 class="text-md font-bold text-slate-700 mb-3 flex items-center gap-2">
+                <span class="text-xl">✍️</span> Journal Sentences (${counts.journal_sentences})
+            </h4>
+        `;
+        container.appendChild(journalHeader);
+
+        journal_sentences.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'glass-card p-5 rounded-[20px] hover:bg-white/90 transition-all !bg-white/70 border border-white/60 cursor-pointer group';
+            div.onclick = () => viewJournalEntry(item.entry_id);
+
+            const date = new Date(item.date).toLocaleDateString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            const languageLabel = item.language === 'german' ?
+                '<span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">🇩🇪 German</span>' :
+                '<span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">🇬🇧 English</span>';
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <div class="text-xs text-slate-500 font-medium">${date}</div>
+                    ${languageLabel}
+                </div>
+                <p class="text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">
+                    "${item.sentence}"
+                </p>
+                <div class="mt-3 text-xs text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                    Click to view full journal entry →
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+}
+
+function clearSearch() {
+    document.getElementById('vocab-search').value = '';
+    loadVocabulary();
+}
+
 function filterVocab() {
     loadVocabulary();
 }
@@ -477,13 +739,13 @@ function sortVocab() {
 
 async function toggleWordMeaning(id, event) {
     event.stopPropagation();
-    
+
     const meaningDiv = document.getElementById(`meaning-${id}`);
     const meaningText = document.getElementById(`meaning-text-${id}`);
-    
+
     if (meaningDiv.classList.contains('hidden')) {
         meaningDiv.classList.remove('hidden');
-        
+
         // If meaning is not loaded, fetch it
         if (meaningText.innerHTML.includes('Loading...') || meaningText.innerHTML.includes('text-slate-400')) {
             try {
@@ -502,41 +764,41 @@ async function toggleWordMeaning(id, event) {
 async function addWord() {
     const wordInput = document.getElementById('new-word-input');
     const meaningInput = document.getElementById('new-word-meaning');
-    
+
     const word = wordInput.value.trim();
     const meaning = meaningInput.value.trim();
-    
+
     if (!word) {
         alert('Please enter a word!');
         return;
     }
-    
+
     try {
         const payload = { word };
         if (meaning) {
             payload.meaning = meaning;
         }
-        
+
         await apiCall('/vocabulary', {
             method: 'POST',
             body: JSON.stringify(payload)
         });
-        
+
         // Clear inputs
         wordInput.value = '';
         meaningInput.value = '';
-        
+
         // Reload vocabulary
         await loadVocabulary();
-        
+
         // Show success feedback
         const successMsg = document.createElement('div');
         successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
         successMsg.innerHTML = '✓ Word added successfully!';
         document.body.appendChild(successMsg);
-        
+
         setTimeout(() => successMsg.remove(), 3000);
-        
+
         // Update dashboard if visible
         if (state.currentView === 'dashboard') {
             await loadDashboard();
@@ -609,6 +871,160 @@ function toggleTranslation(index) {
     const el = document.getElementById(`phrase-de-${index}`);
     el.classList.toggle('hidden');
 }
+
+// --- NOTES (formerly MOTIVATION) ---
+let editingNoteId = null;
+
+async function loadNotes() {
+    try {
+        const sortMode = document.getElementById('notes-sort').value;
+        const result = await apiCall(`/notes?sort=${sortMode}`);
+        renderNotes(result.data);
+    } catch (error) {
+        console.error('Error loading notes:', error);
+    }
+}
+
+function renderNotes(notes) {
+    const container = document.getElementById('notes-grid');
+    container.innerHTML = '';
+
+    if (notes.length === 0) {
+        document.getElementById('empty-notes-state').classList.remove('hidden');
+    } else {
+        document.getElementById('empty-notes-state').classList.add('hidden');
+
+        // Define border colors for variety
+        const borderColors = ['border-amber-400', 'border-cyan-400', 'border-green-500', 'border-purple-500', 'border-red-500', 'border-blue-500', 'border-pink-500'];
+
+        notes.forEach((note, index) => {
+            const div = document.createElement('div');
+            const borderColor = borderColors[index % borderColors.length];
+            div.className = `glass-card p-8 rounded-[30px] border-t-8 ${borderColor} !bg-white relative group`;
+
+            const date = new Date(note.created_at).toLocaleDateString();
+
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-bold text-xl text-slate-800 flex-1 pr-2">${note.title}</h3>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editNote(${note.id})" class="text-blue-500 hover:text-blue-700 transition-colors" title="Edit Note">✏️</button>
+                        <button onclick="deleteNote(${note.id})" class="text-red-400 hover:text-red-600 transition-colors" title="Delete Note">🗑️</button>
+                    </div>
+                </div>
+                <p class="text-slate-500 leading-relaxed whitespace-pre-wrap">${note.content}</p>
+                <div class="text-xs text-slate-400 mt-4">Added: ${date}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+}
+
+async function addNote() {
+    const titleInput = document.getElementById('new-note-title');
+    const contentInput = document.getElementById('new-note-content');
+
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!title) {
+        alert('Please enter a note title!');
+        return;
+    }
+
+    if (!content) {
+        alert('Please enter note content!');
+        return;
+    }
+
+    try {
+        if (editingNoteId) {
+            // Update existing note
+            await apiCall(`/notes/${editingNoteId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ title, content })
+            });
+            editingNoteId = null;
+
+            // Reset button text
+            const addBtn = document.querySelector('button[onclick="addNote()"]');
+            addBtn.innerHTML = '+ Add Note';
+        } else {
+            // Create new note
+            await apiCall('/notes', {
+                method: 'POST',
+                body: JSON.stringify({ title, content })
+            });
+        }
+
+        // Clear inputs
+        titleInput.value = '';
+        contentInput.value = '';
+
+        // Reload notes
+        await loadNotes();
+
+        // Show success feedback
+        const successMsg = document.createElement('div');
+        successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
+        successMsg.innerHTML = editingNoteId ? '✓ Note updated successfully!' : '✓ Note added successfully!';
+        document.body.appendChild(successMsg);
+
+        setTimeout(() => successMsg.remove(), 3000);
+    } catch (error) {
+        alert('Failed to save note: ' + error.message);
+    }
+}
+
+async function editNote(id) {
+    try {
+        const result = await apiCall(`/notes/${id}`);
+        const note = result.data;
+
+        document.getElementById('new-note-title').value = note.title;
+        document.getElementById('new-note-content').value = note.content;
+
+        editingNoteId = id;
+
+        // Update button text
+        const addBtn = document.querySelector('button[onclick="addNote()"]');
+        addBtn.innerHTML = '💾 Update Note';
+
+        // Scroll to form
+        document.getElementById('new-note-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch (error) {
+        console.error('Error loading note:', error);
+        alert('Failed to load note');
+    }
+}
+
+async function deleteNote(id) {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+
+    try {
+        await apiCall(`/notes/${id}`, { method: 'DELETE' });
+
+        // If we deleted the currently edited note, clear the form
+        if (editingNoteId === id) {
+            document.getElementById('new-note-title').value = '';
+            document.getElementById('new-note-content').value = '';
+            editingNoteId = null;
+
+            const addBtn = document.querySelector('button[onclick="addNote()"]');
+            addBtn.innerHTML = '+ Add Note';
+        }
+
+        await loadNotes();
+    } catch (error) {
+        console.error('Error deleting note:', error);
+        alert('Failed to delete note');
+    }
+}
+
+function sortNotes() {
+    loadNotes();
+}
+
 
 // --- INITIALIZATION ---
 window.onload = async function () {

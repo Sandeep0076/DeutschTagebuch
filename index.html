@@ -247,7 +247,7 @@
             </button>
             <button onclick="navTo('motivation')" class="nav-item flex items-center gap-4 px-4 py-4">
                 <span class="text-xl icon">💡</span>
-                <span>Motivation & Tips</span>
+                <span>Notes</span>
             </button>
         </div>
 
@@ -289,7 +289,7 @@
                 class="p-4 text-left hover:bg-slate-50 rounded-xl text-lg transition-colors text-slate-700 font-medium">Common
                 Phrases</button>
             <button onclick="navTo('motivation')"
-                class="p-4 text-left hover:bg-slate-50 rounded-xl text-lg transition-colors text-slate-700 font-medium">Motivation</button>
+                class="p-4 text-left hover:bg-slate-50 rounded-xl text-lg transition-colors text-slate-700 font-medium">Notes</button>
         </div>
     </div>
 
@@ -433,13 +433,14 @@
                     <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[400px]">
                         <!-- English Input -->
                         <div class="flex flex-col h-full glass-card p-2 rounded-[30px] !bg-white/60">
-                            <div class="px-6 py-4 border-b border-slate-100">
+                            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                                 <label class="text-sm font-bold text-slate-400 uppercase tracking-wide">English
                                     Thoughts</label>
+                                <span class="text-xs text-slate-400">Press Enter for new bullet</span>
                             </div>
-                            <textarea id="input-en"
-                                class="flex-1 w-full p-6 bg-transparent border-none outline-none resize-none text-lg leading-relaxed text-slate-700 placeholder-slate-300"
-                                placeholder="Today I'm thinking about..."></textarea>
+                            <div id="english-bullets-container" class="flex-1 w-full p-6 overflow-y-auto space-y-3">
+                                <!-- Bullet points will be added here dynamically -->
+                            </div>
                         </div>
 
                         <!-- German Input -->
@@ -449,11 +450,11 @@
                                 class="px-6 py-4 border-b border-blue-50 flex justify-between items-center bg-blue-50/50 rounded-t-[20px]">
                                 <label class="text-sm font-bold text-blue-600 uppercase tracking-wide">Auf
                                     Deutsch</label>
-                                <span class="text-xs text-blue-400 font-medium">Target Language</span>
+                                <span class="text-xs text-blue-400 font-medium">Press Enter for new bullet</span>
                             </div>
-                            <textarea id="input-de"
-                                class="flex-1 w-full p-6 bg-transparent border-none outline-none resize-none text-lg leading-relaxed text-slate-800 placeholder-slate-300 font-medium"
-                                placeholder="Heute denke ich über..."></textarea>
+                            <div id="german-bullets-container" class="flex-1 w-full p-6 overflow-y-auto space-y-3">
+                                <!-- Bullet points will be added here dynamically -->
+                            </div>
                         </div>
                     </div>
 
@@ -556,48 +557,52 @@
             </div>
         </section>
 
-        <!-- SECTION: MOTIVATION -->
+        <!-- SECTION: NOTES (formerly MOTIVATION) -->
         <section id="motivation" class="hidden max-w-7xl mx-auto space-y-8">
-            <header class="mb-4">
-                <h2 class="text-4xl font-bold text-slate-800 mb-2">Motivation & Tips</h2>
-                <p class="text-slate-500 text-lg">Stay inspired on your journey.</p>
+            <header class="glass-panel p-6 rounded-[24px] mb-8 !bg-white/60">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-800 mb-1">Notes</h2>
+                        <p class="text-slate-500">Stay inspired on your journey.</p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                        <select id="notes-sort" onchange="sortNotes()"
+                            class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 cursor-pointer">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="az">A-Z</option>
+                            <option value="za">Z-A</option>
+                        </select>
+                    </div>
+                </div>
             </header>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Tip Card 1 -->
-                <div class="glass-card p-8 rounded-[30px] border-t-8 border-amber-400 !bg-white">
-                    <h3 class="font-bold text-xl mb-3 text-slate-800">The 80/20 Rule</h3>
-                    <p class="text-slate-500 leading-relaxed">Don't stress about perfect grammar. 20% of the vocabulary
-                        allows you to understand 80% of daily conversation.</p>
+            <!-- Add Note Section -->
+            <div class="glass-card p-6 rounded-[24px] !bg-white/60">
+                <h3 class="font-bold text-lg text-slate-800 mb-4">Add New Note</h3>
+                <div class="flex flex-col gap-3">
+                    <input type="text" id="new-note-title" placeholder="Note title..."
+                        class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300">
+                    <textarea id="new-note-content" placeholder="Note content..." rows="3"
+                        class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300 resize-none"></textarea>
+                    <button onclick="addNote()"
+                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-200 hover:shadow-xl">
+                        + Add Note
+                    </button>
                 </div>
+            </div>
 
-                <!-- Tip Card 2 -->
-                <div class="glass-card p-8 rounded-[30px] border-t-8 border-cyan-400 !bg-white">
-                    <h3 class="font-bold text-xl mb-3 text-slate-800">Change Language</h3>
-                    <p class="text-slate-500 leading-relaxed">Change your phone's interface to German to learn
-                        practical, technical vocabulary passively.</p>
-                </div>
+            <!-- Notes Grid -->
+            <div id="notes-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Populated by JS -->
+            </div>
 
-                <!-- Tip Card 3 -->
-                <div class="glass-card p-8 rounded-[30px] border-t-8 border-green-500 !bg-white">
-                    <h3 class="font-bold text-xl mb-3 text-slate-800">Talk to Yourself</h3>
-                    <p class="text-slate-500 leading-relaxed">Narrate your day. "Ich mache jetzt Kaffee." It bridges the
-                        gap between thinking and speaking.</p>
-                </div>
-
-                <!-- Tip Card 4 -->
-                <div class="glass-card p-8 rounded-[30px] border-t-8 border-purple-500 !bg-white">
-                    <h3 class="font-bold text-xl mb-3 text-slate-800">Media Consumption</h3>
-                    <p class="text-slate-500 leading-relaxed">Watch "Tagesschau" in 100 seconds. Listen to podcasts.
-                        Immersion finds the rhythm.</p>
-                </div>
-
-                <!-- Tip Card 5 -->
-                <div class="glass-card p-8 rounded-[30px] border-t-8 border-red-500 !bg-white">
-                    <h3 class="font-bold text-xl mb-3 text-slate-800">The "No English" Hour</h3>
-                    <p class="text-slate-500 leading-relaxed">For one hour, no English. If you don't know a word,
-                        describe it around the word.</p>
-                </div>
+            <div id="empty-notes-state"
+                class="hidden flex flex-col items-center justify-center py-20 text-slate-400 opacity-60">
+                <div class="text-6xl mb-4 grayscale opacity-50">📝</div>
+                <h3 class="text-2xl font-bold">No notes yet</h3>
+                <p>Add your first note to get started.</p>
             </div>
         </section>
 
