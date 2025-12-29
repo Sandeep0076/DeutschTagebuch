@@ -20,12 +20,15 @@ async function translateWithGeminiApi(text, targetLang = 'German', env = null) {
     };
 
     try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+        console.log('[DEBUG] Gemini API URL:', url);
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+            url,
             {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': apiKey
                 },
                 body: JSON.stringify(payload)
             }
@@ -36,9 +39,14 @@ async function translateWithGeminiApi(text, targetLang = 'German', env = null) {
             throw new Error(error.error?.message || `HTTP error! status: ${response.status}`);
         }
 
+        // For non-streaming response, parse JSON directly
         const data = await response.json();
+        console.log('[DEBUG] API Response:', JSON.stringify(data, null, 2));
+        
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-            return data.candidates[0].content.parts[0].text.trim();
+            const translatedText = data.candidates[0].content.parts[0].text;
+            console.log('[DEBUG] Extracted text:', translatedText);
+            return translatedText.trim();
         } else {
             throw new Error('Unexpected response format from Gemini API');
         }

@@ -1,5 +1,11 @@
 # Environment variables
 .env
+.dev.vars
+backend-worker/.dev.vars
+
+# Cloudflare Wrangler
+.wrangler/
+backend-worker/.wrangler/
 
 # Dependencies
 node_modules/
