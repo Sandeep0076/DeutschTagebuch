@@ -12,8 +12,8 @@ async function translateWithGemini(text) {
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        // Using gemini-3-flash-preview as requested
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Using Gemini 3 Flash Preview
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
         const prompt = `Translate the following English text to German. Only return the translated text without any explanation or markdown formatting: "${text}"`;
 
@@ -38,7 +38,7 @@ async function translateToEnglish(text) {
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Using stable flash for simple translations
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }); // Using Gemini 3 Flash Preview for translations
 
         const prompt = `Translate the following German word or phrase to English. Only return the translated English text without any explanation, punctuation or markdown formatting: "${text}"`;
 

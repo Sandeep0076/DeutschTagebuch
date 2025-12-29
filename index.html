@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeutschTagebuch | Modern Glass Interface</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/straw_hat_icon.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -23,13 +25,22 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
 
     <style>
         :root {
-            --glass-border: rgba(255, 255, 255, 0.6);
-            --glass-bg: rgba(255, 255, 255, 0.4);
-            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+            --op-red: #D70000;
+            --op-yellow: #FFCE00;
+            --op-blue: #2E63A4;
+            --op-parchment: #DFC18A;
+            --op-wood: #AF6528;
+            --op-sky: #60BFF5;
+
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
             --text-primary: #1e293b;
             --text-secondary: #475569;
         }
@@ -40,13 +51,39 @@
             overflow: hidden;
             margin: 0;
             padding: 0;
+            background-color: #f4e4bc;
+            /* Parchment base */
         }
 
         body {
             font-family: 'Outfit', sans-serif;
-            background: linear-gradient(135deg, #f6f8fd 0%, #f1f0ff 100%);
             color: var(--text-primary);
             position: relative;
+            background-image: url('assets/nautical_map_bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Nautical Accents */
+        .nautical-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 240, 200, 0.1);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        h1,
+        h2,
+        .op-font {
+            font-family: 'Permanent Marker', cursive;
+            letter-spacing: 1px;
+        }
+
+        .op-title {
+            font-family: 'Bangers', cursive;
+            letter-spacing: 2px;
         }
 
         /* Soft Pastel Blobs */
@@ -111,38 +148,72 @@
             }
         }
 
-        /* Light Glassmorphism Utilities */
+        @keyframes bounce-in {
+            0% {
+                transform: scale(0.3);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            70% {
+                transform: scale(0.9);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-bounce-in {
+            animation: bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes spin-slow {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+        }
+
+        /* One Piece Themed Utilities */
         .glass-panel {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--op-wood);
+            box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
         }
 
         .glass-card {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 4px 15px rgba(200, 200, 255, 0.15);
-            /* Subtle blue tinted shadow */
-            transition: all 0.3s ease;
-            border-radius: 24px;
-            /* More rounded */
+            background: #fffcf0;
+            /* Parchment card */
+            border: 2px solid var(--op-wood);
+            box-shadow: 5px 5px 0px rgba(175, 101, 40, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 16px;
         }
 
         .glass-card:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow: 0 12px 30px rgba(100, 100, 255, 0.15);
+            transform: scale(1.02) rotate(-1deg);
+            box-shadow: 8px 8px 0px var(--op-wood);
         }
 
         .glass-sidebar {
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-right: 1px solid rgba(255, 255, 255, 0.6);
+            background: rgba(175, 101, 40, 0.95);
+            /* Wood sidebar */
+            border-right: 4px solid #5d3615;
+            box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
         }
 
         /* Custom Scrollbar (Light) */
@@ -166,24 +237,26 @@
         /* Nav Item Styles */
         .nav-item {
             transition: all 0.3s ease;
-            color: #64748b;
-            /* Slate 500 */
-            border-radius: 16px;
-            font-weight: 500;
+            color: #ffecb3;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 2px solid transparent;
+            margin-bottom: 8px;
         }
 
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.6);
-            color: #3b82f6;
-            transform: translateX(5px);
+            background: var(--op-red);
+            color: white;
+            border-color: var(--op-yellow);
+            transform: scale(1.05);
         }
 
         .nav-item.active {
-            background: #ffffff;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            color: #2563eb;
-            /* Blue 600 */
-            font-weight: 700;
+            background: var(--op-yellow);
+            color: #5d3615;
+            box-shadow: 4px 4px 0px #5d3615;
+            font-weight: 800;
+            border-color: #5d3615;
         }
 
         .nav-item.active span.icon {
@@ -209,10 +282,8 @@
 
 <body class="flex flex-col md:flex-row h-screen overflow-hidden relative">
 
-    <!-- Background Blobs (Soft Pastels) -->
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+    <!-- Background Overlay -->
+    <div class="nautical-overlay"></div>
 
     <!-- Mobile Header -->
     <div class="md:hidden flex justify-between items-center p-4 glass-sidebar sticky top-0 z-50">
@@ -229,47 +300,51 @@
 
     <!-- Floating Glass Sidebar (Desktop) -->
     <nav id="sidebar" class="hidden md:flex flex-col w-72 glass-sidebar h-full z-40 p-6 pt-8">
-        <div class="mb-10 px-2">
-            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">DeutschTagebuch</h1>
-            <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest font-bold">Daily Fluent System</p>
+        <div class="mb-10 px-2 flex flex-col items-center text-center">
+            <img src="assets/straw_hat_icon.png" class="w-20 h-20 mb-4 drop-shadow-lg" alt="Straw Hat">
+            <h1 class="text-3xl font-extrabold text-[#fffce0] op-title drop-shadow-md">DeutschTagebuch</h1>
+            <p class="text-xs text-yellow-200 mt-1 uppercase tracking-widest font-bold">The Pirate's Fluent Way</p>
         </div>
 
-        <div class="flex-1 flex flex-col gap-3">
+        <div class="flex-1 flex flex-col gap-2">
             <button onclick="navTo('dashboard')" class="nav-item active flex items-center gap-4 px-4 py-4">
-                <span class="text-xl icon">📊</span>
-                <span>Dashboard</span>
+                <span class="text-2xl icon">🏴‍☠️</span>
+                <span>Captain's Log</span>
             </button>
             <button onclick="navTo('journal')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-xl icon">✍️</span>
-                <span>Daily Journal</span>
+                <span class="text-2xl icon">🗡️</span>
+                <span>Zoro's Training</span>
             </button>
             <button onclick="navTo('vocabulary')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-xl icon">🗂️</span>
-                <span>Vocabulary Bank</span>
+                <span class="text-2xl icon">🧭</span>
+                <span>Nami's Maps</span>
             </button>
             <button onclick="navTo('phrases')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-xl icon">💬</span>
-                <span>Common Phrases</span>
+                <span class="text-2xl icon">📢</span>
+                <span>Brook's Songs</span>
             </button>
             <button onclick="navTo('motivation')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-xl icon">💡</span>
-                <span>Notes</span>
+                <span class="text-2xl icon">🍖</span>
+                <span>Meat & Tips</span>
             </button>
         </div>
 
         <!-- Timer Widget -->
         <div class="mt-auto">
-            <div class="glass-card !bg-white/80 p-5 !shadow-sm">
+            <div class="glass-card !bg-var(--op-yellow) p-5 border-2 border-[#5d3615] shadow-[4px_4px_0px_#5d3615]">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Session Timer</span>
-                    <span id="desktop-timer" class="text-blue-600 font-mono font-bold text-lg">00:00</span>
+                    <span class="text-[10px] font-black text-[#5d3615] uppercase tracking-widest op-font">Sailor's
+                        Watch</span>
+                    <span id="desktop-timer"
+                        class="text-[var(--op-red)] font-mono font-black text-xl drop-shadow-sm">00:00</span>
                 </div>
-                <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+                <div
+                    class="w-full bg-[#f4e4bc] border-2 border-[#5d3615] rounded-full h-3 mt-2 overflow-hidden shadow-inner">
                     <div id="timer-bar"
-                        class="bg-gradient-to-r from-blue-400 to-indigo-500 h-1.5 rounded-full transition-all duration-1000"
+                        class="bg-[var(--op-red)] h-full rounded-full transition-all duration-1000 border-r-2 border-[#5d3615]"
                         style="width: 0%"></div>
                 </div>
-                <p class="text-[10px] text-slate-400 mt-3 text-center">Daily Goal: 60 mins</p>
+                <p class="text-[10px] text-[#5d3615] mt-3 text-center font-bold italic">Daily Quest: 60 mins</p>
             </div>
         </div>
     </nav>
@@ -304,39 +379,51 @@
 
         <!-- SECTION: DASHBOARD -->
         <section id="dashboard" class="max-w-7xl mx-auto animate-fade-in space-y-8">
-            <header class="flex flex-col md:flex-row justify-between items-end gap-4 mb-6">
-                <div>
-                    <h2 class="text-4xl font-bold text-slate-800 mb-2">Hello, User</h2>
-                    <p class="text-slate-500 text-lg">Ready to expand your world? You've practiced for <span
-                            id="dash-time" class="font-bold text-blue-600">0</span> minutes today.</p>
+            <header
+                class="flex flex-col md:flex-row justify-between items-center gap-6 mb-10 bg-white/40 p-6 rounded-3xl border-b-4"
+                style="border-color: var(--op-wood)">
+                <div class="flex items-center gap-6">
+                    <div class="relative">
+                        <img src="assets/luffy_portrait.png" class="w-24 h-24 rounded-full border-4 shadow-xl"
+                            style="border-color: var(--op-yellow)" alt="Luffy">
+                        <div
+                            class="absolute -bottom-2 -right-2 bg-[var(--op-red)] text-white px-2 py-0.5 rounded-full text-xs font-bold border-2 border-white">
+                            lvl 99</div>
+                    </div>
+                    <div>
+                        <h2 class="text-4xl font-bold text-slate-800 op-title mb-1">Ore wa Kaizoku-ō ni naru!</h2>
+                        <p class="text-slate-600 text-lg font-medium">Ready to find the One Piece of Fluency? You've
+                            practiced for <span id="dash-time" class="font-bold text-[var(--op-red)]">0</span> minutes
+                            today.</p>
+                    </div>
                 </div>
                 <div
-                    class="glass-card !bg-white/80 px-4 py-2 rounded-full flex items-center gap-2 border border-green-100">
-                    <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                    <span class="text-sm font-medium text-slate-600">System Online</span>
+                    class="glass-card bg-[var(--op-yellow)] px-6 py-3 rounded-xl flex items-center gap-3 border-2 border-[#5d3615] shadow-[4px_4px_0px_#5d3615]">
+                    <span class="text-2xl animate-spin-slow">⚓</span>
+                    <span class="font-bold text-[#5d3615] uppercase tracking-wider">Sea Worthy</span>
                 </div>
             </header>
 
             <!-- Quick Stats Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Stat Card 1 -->
-                <div class="glass-card p-8 rounded-[30px] relative overflow-hidden group">
-                    <div
-                        class="absolute -right-4 -top-4 p-4 opacity-5 transform rotate-12 group-hover:scale-110 transition-transform duration-500">
-                        <span class="text-9xl grayscale">📚</span>
+                <div class="glass-card p-8 relative overflow-hidden group">
+                    <div class="absolute -right-6 -top-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <span class="text-[12rem]">🍖</span>
                     </div>
                     <div class="relative z-10">
-                        <div class="flex items-center gap-3 mb-4">
+                        <div class="flex items-center gap-3 mb-6">
                             <div
-                                class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xl">
-                                📚</div>
-                            <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Vocabulary
+                                class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 text-2xl border-2 border-orange-200 shadow-inner">
+                                💰</div>
+                            <div class="text-xs text-slate-500 font-extrabold uppercase tracking-widest">Total Bounty
+                                (Words)
                             </div>
                         </div>
-                        <div class="text-5xl font-bold text-slate-800 mb-2" id="stat-vocab-count">0</div>
+                        <div class="text-6xl font-black text-slate-800 mb-2 op-title" id="stat-vocab-count">0</div>
                         <div
-                            class="inline-flex items-center gap-1 bg-green-100 px-3 py-1 rounded-full text-green-700 text-xs font-bold">
-                            <span>+<span id="stat-vocab-new">0</span> new this session</span>
+                            class="inline-flex items-center gap-2 bg-green-100 px-4 py-2 rounded-lg text-green-700 text-xs font-black uppercase">
+                            <span>+<span id="stat-vocab-new">0</span> Berry Today</span>
                         </div>
                     </div>
                 </div>
@@ -392,20 +479,25 @@
 
                 <!-- Word of the Day -->
                 <div
-                    class="glass-card p-8 rounded-[30px] flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-white via-white to-blue-50/50">
+                    class="glass-card p-8 flex flex-col justify-center relative overflow-hidden bg-[url('assets/nautical_map_bg.png')] bg-cover border-4 border-[var(--op-blue)]">
+                    <div class="absolute inset-0 bg-white/60"></div>
                     <div class="relative z-10">
-                        <div class="uppercase tracking-widest text-xs text-blue-500 font-bold mb-4">Wort des Tages</div>
-                        <h3 class="text-4xl font-bold mb-2 text-slate-800">die Beharrlichkeit</h3>
-                        <p class="text-slate-500 italic text-lg mb-8">persistence, perseverance</p>
+                        <div
+                            class="uppercase tracking-widest text-xs text-[var(--op-blue)] font-black mb-4 flex items-center gap-2">
+                            <span>📜</span> Nico Robin's Secret Message
+                        </div>
+                        <h3 class="text-5xl font-black mb-2 text-slate-800 op-font">die Beharrlichkeit</h3>
+                        <p class="text-slate-600 italic text-xl mb-8 font-medium">persistence, perseverance</p>
 
-                        <div class="bg-slate-50 p-5 rounded-2xl border-l-4 border-blue-500 mb-8">
-                            <p class="text-slate-700 font-medium text-lg">"Beharrlichkeit führt zum Ziel."</p>
-                            <p class="text-slate-400 text-sm mt-2">Persistence leads to the goal.</p>
+                        <div
+                            class="bg-[var(--op-yellow)]/80 p-6 rounded-2xl border-l-8 border-[var(--op-wood)] mb-8 shadow-md">
+                            <p class="text-slate-800 font-bold text-xl op-font">"Beharrlichkeit führt zum Ziel."</p>
+                            <p class="text-[#5d3615] text-sm mt-2 font-black">Persistence leads to the goal.</p>
                         </div>
 
                         <button onclick="navTo('journal')"
-                            class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02]">
-                            Practice Now
+                            class="w-full py-5 rounded-2xl bg-[var(--op-blue)] hover:bg-[#1e40a4] text-white font-black op-title text-xl shadow-[6px_6px_0px_#1e293b] transition-all transform hover:translate-y-[-2px] active:translate-y-[2px] active:shadow-none">
+                            TRAIN WITH ZORO
                         </button>
                     </div>
                 </div>
@@ -417,21 +509,27 @@
             <div class="flex flex-col lg:flex-row gap-6 h-full">
                 <!-- Left Side: Writing Area -->
                 <div class="flex-1 flex flex-col space-y-6">
-                    <header class="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div class="glass-panel px-6 py-4 rounded-2xl w-full md:w-auto !bg-white/60">
-                            <h2 class="text-2xl font-bold text-slate-800">Daily Journal</h2>
-                            <p class="text-slate-500 text-sm">Express yourself. Don't fear mistakes.</p>
+                    <header
+                        class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-6 rounded-3xl border-b-4"
+                        style="border-color: var(--op-wood)">
+                        <div class="flex items-center gap-4">
+                            <span class="text-4xl">🗡️</span>
+                            <div>
+                                <h2 class="text-2xl font-bold text-slate-800 op-font">Zoro's Training Room</h2>
+                                <p class="text-slate-600 text-sm font-medium italic">Each word is a slash toward
+                                    mastery.</p>
+                            </div>
                         </div>
                         <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
                             <button onclick="translateText()"
-                                class="px-5 py-3 glass-card hover:bg-white text-slate-600 hover:text-blue-600 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap font-medium">
+                                class="px-5 py-3 glass-card hover:bg-[var(--op-sky)] text-slate-800 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap font-bold">
                                 <span>🌐</span> Translate
                             </button>
                             <button onclick="clearJournal()"
                                 class="px-5 py-3 glass-card hover:bg-white text-slate-400 hover:text-red-500 rounded-xl transition-all whitespace-nowrap font-medium">Clear</button>
                             <button onclick="processEntry()"
-                                class="px-6 py-3 bg-slate-800 hover:bg-black text-white rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap font-bold">
-                                <span>✨</span> Save Entry
+                                class="px-6 py-3 bg-[var(--op-red)] hover:bg-[#b00000] text-white rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap font-black border-2 border-[#5d3615]">
+                                <span>✨</span> Save Dash Slash
                             </button>
                         </div>
                     </header>
@@ -497,22 +595,26 @@
 
         <!-- SECTION: VOCABULARY -->
         <section id="vocabulary" class="hidden max-w-7xl mx-auto space-y-6">
-            <header class="glass-panel p-6 rounded-[24px] mb-8 !bg-white/60">
+            <header class="glass-panel p-8 rounded-[24px] mb-8 bg-white/60 border-b-4"
+                style="border-color: var(--op-blue)">
                 <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div>
-                        <h2 class="text-3xl font-bold text-slate-800 mb-1">Vocabulary Bank</h2>
-                        <p class="text-slate-500">Your personal collection of words.</p>
+                    <div class="flex items-center gap-4">
+                        <span class="text-5xl">🧭</span>
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-800 op-font">Nami's Navigation Room</h2>
+                            <p class="text-slate-600 font-medium italic">Cartographing your path to fluency.</p>
+                        </div>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                         <div class="relative flex-1">
                             <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400">🔍</span>
-                            <input type="text" id="vocab-search" onkeyup="filterVocab()" placeholder="Search..."
-                                class="w-full pl-10 pr-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300">
+                            <input type="text" id="vocab-search" onkeyup="filterVocab()" placeholder="Search the map..."
+                                class="w-full pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:border-[var(--op-blue)] focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-400 font-bold">
                         </div>
                         <select id="vocab-sort" onchange="sortVocab()"
-                            class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 cursor-pointer">
-                            <option value="newest">Newest First</option>
+                            class="px-4 py-3 rounded-xl bg-white border-2 border-slate-200 text-slate-700 focus:outline-none focus:border-[var(--op-blue)] cursor-pointer font-bold">
+                            <option value="newest">Latest Treasure</option>
                             <option value="az">A-Z</option>
                             <option value="za">Z-A</option>
                         </select>
@@ -672,6 +774,34 @@
         </section>
 
     </main>
+
+    <!-- Wanted Poster Modal -->
+    <div id="wanted-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden items-center justify-center p-4">
+        <div class="relative max-w-md w-full animate-bounce-in">
+            <img src="assets/wanted_poster_frame.png" class="w-full shadow-2xl" alt="Wanted Poster">
+
+            <!-- Character Portrait Placement -->
+            <div class="absolute top-[28%] left-[15%] right-[15%] h-[42%] overflow-hidden rounded-lg">
+                <img id="wanted-image" src="assets/luffy_portrait.png" class="w-full h-full object-cover grayscale-0"
+                    alt="Wanted">
+            </div>
+
+            <!-- Bounty Text Overlay -->
+            <div class="absolute bottom-[12%] left-0 right-0 text-center">
+                <div id="wanted-name" class="op-title text-4xl text-[#5d3615] uppercase tracking-widest">WANTED</div>
+                <div class="flex items-center justify-center gap-1 mt-1">
+                    <span class="text-2xl font-bold text-[#5d3615]">฿</span>
+                    <span id="wanted-bounty" class="text-3xl font-black text-[#5d3615] op-title">1,000,000,000</span>
+                </div>
+            </div>
+
+            <button onclick="hideWantedModal()"
+                class="absolute -top-4 -right-4 bg-white rounded-full p-2 shadow-lg border-2 border-black hover:scale-110 active:scale-90 transition-transform">
+                <span class="text-black font-bold">✕</span>
+            </button>
+        </div>
+    </div>
 
     <!-- JavaScript Logic -->
     <script src="app.js"></script>

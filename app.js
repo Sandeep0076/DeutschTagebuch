@@ -524,11 +524,7 @@ async function processEntry() {
         }
 
         // Show success feedback
-        document.getElementById('feedback-area').classList.remove('hidden');
-        const countEl = document.getElementById('new-words-count');
-        if (countEl) {
-            countEl.parentElement.innerHTML = '🎉 Entry saved successfully!';
-        }
+        showWantedPoster(); // NEW: Trigger One Piece style notification
 
         // Clear inputs
         clearJournal();
@@ -695,24 +691,25 @@ function renderVocabulary(words) {
         document.getElementById('empty-vocab-state').classList.add('hidden');
         words.forEach(item => {
             const div = document.createElement('div');
-            div.className = 'glass-card p-4 rounded-[20px] relative cursor-pointer group hover:bg-white/90 transition-all !bg-white/50 border border-white/60';
+            div.className = 'glass-card p-6 rounded-xl relative cursor-pointer group hover:bg-[#fff9e6] transition-all border-2 border-[var(--op-wood)] shadow-[4px_4px_0px_#5d3615]';
 
             const date = new Date(item.first_seen).toLocaleDateString();
-            const frequency = item.frequency > 1 ? `<div class="text-xs text-blue-600 mt-2 font-mono font-bold">Used ${item.frequency}x</div>` : '';
+            const frequency = item.frequency > 1 ? `<div class="text-[10px] bg-[var(--op-blue)] text-white px-2 py-0.5 rounded-full inline-block mt-2 font-bold font-mono">ENCOUNTERED ${item.frequency}x</div>` : '';
 
             div.innerHTML = `
                 <div onclick="toggleWordMeaning(${item.id}, event)" class="cursor-pointer">
-                    <div class="font-bold text-xl text-slate-800 mb-1">${item.word}</div>
-                    <div class="text-xs text-slate-500 opacity-80">Added: ${date}</div>
+                    <div class="op-title text-xs text-[var(--op-red)] mb-1">ARREST WARRANT</div>
+                    <div class="font-black text-2xl text-slate-800 mb-1 op-font tracking-wide">${item.word}</div>
+                    <div class="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Seen: ${date}</div>
                     ${frequency}
-                    <div id="meaning-${item.id}" class="hidden mt-3 pt-3 border-t border-slate-200">
-                        <div class="text-xs text-blue-500 font-bold uppercase tracking-wide mb-1">Meaning</div>
-                        <div class="text-sm text-slate-700 italic" id="meaning-text-${item.id}">
-                            ${item.meaning || '<span class="text-slate-400">Loading...</span>'}
+                    <div id="meaning-${item.id}" class="hidden mt-4 pt-4 border-t-2 border-dashed border-[#5d3615]">
+                        <div class="text-[10px] text-[var(--op-blue)] font-black uppercase tracking-widest mb-1">Deciphered Meaning</div>
+                        <div class="text-md text-slate-700 italic font-medium" id="meaning-text-${item.id}">
+                            ${item.meaning || '<span class="text-slate-400">Consulting Robin...</span>'}
                         </div>
                     </div>
                 </div>
-                <button onclick="deleteWord(${item.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xl">×</button>
+                <button onclick="deleteWord(${item.id})" class="absolute top-2 right-2 text-slate-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity text-2xl font-black">✕</button>
             `;
             container.appendChild(div);
         });
@@ -1084,25 +1081,26 @@ function renderPhrases(phrases) {
 
     phrases.forEach((phrase, index) => {
         const div = document.createElement('div');
-        div.className = 'glass-card rounded-[24px] overflow-hidden cursor-pointer group hover:bg-white/90 transition-all border-none !bg-white';
+        div.className = 'glass-card rounded-2xl overflow-hidden cursor-pointer group hover:scale-[1.01] transition-all border-2 border-[var(--op-wood)] shadow-[4px_4px_0px_#5d3615] bg-[#fffcf0]';
         div.onclick = () => toggleTranslation(index);
 
-        const customBadge = !phrase.builtin ? '<span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">Custom</span>' : '';
+        const customBadge = !phrase.builtin ? '<span class="text-[10px] bg-[var(--op-blue)] text-white px-2 py-0.5 rounded-full font-black uppercase">Pirated Copy</span>' : '';
 
         div.innerHTML = `
             <div class="p-8">
                 <div class="flex justify-between items-start mb-4">
-                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">English</span>
+                    <span class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest op-font">English Melody</span>
                     <div class="flex gap-2 items-center">
                         ${customBadge}
-                        <span class="text-xs text-slate-400 group-hover:text-blue-500 transition-colors">Click to reveal</span>
+                        <span class="text-[10px] text-slate-400 group-hover:text-[var(--op-red)] transition-colors font-black uppercase">Play Note</span>
                     </div>
                 </div>
-                <p class="text-2xl text-slate-700 font-medium leading-relaxed">${phrase.english}</p>
+                <p class="text-2xl text-slate-800 font-bold leading-relaxed op-font">${phrase.english}</p>
             </div>
-            <div id="phrase-de-${index}" class="bg-slate-50 p-8 border-t border-slate-100 hidden">
-                <div class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-2">Deutsch</div>
-                <p class="text-2xl font-bold text-slate-900 tracking-tight">${phrase.german}</p>
+            <div id="phrase-de-${index}" class="bg-[var(--op-yellow)]/20 p-8 border-t-2 border-dashed border-[#5d3615] hidden">
+                <div class="text-[10px] font-black text-[var(--op-red)] uppercase tracking-widest mb-2 op-font">Brook's Translation (Deutsch)</div>
+                <p class="text-3xl font-black text-[#5d3615] tracking-tight op-font">${phrase.german}</p>
+                <div class="mt-4 text-[10px] text-slate-500 italic">Yo-ho-ho-ho! 🎻</div>
             </div>
         `;
         container.appendChild(div);
@@ -1164,25 +1162,25 @@ function renderNotes(notes) {
         document.getElementById('empty-notes-state').classList.add('hidden');
 
         // Define border colors for variety
-        const borderColors = ['border-amber-400', 'border-cyan-400', 'border-green-500', 'border-purple-500', 'border-red-500', 'border-blue-500', 'border-pink-500'];
+        const opColors = ['border-[var(--op-red)]', 'border-[var(--op-yellow)]', 'border-[var(--op-blue)]', 'border-[var(--op-wood)]'];
 
         notes.forEach((note, index) => {
             const div = document.createElement('div');
-            const borderColor = borderColors[index % borderColors.length];
-            div.className = `glass-card p-8 rounded-[30px] border-t-8 ${borderColor} !bg-white relative group`;
+            const borderColor = opColors[index % opColors.length];
+            div.className = `glass-card p-8 rounded-2xl border-t-8 ${borderColor} bg-[#fffcf0] relative group shadow-[4px_4px_0px_#5d3615]`;
 
             const date = new Date(note.created_at).toLocaleDateString();
 
             div.innerHTML = `
-                <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-bold text-xl text-slate-800 flex-1 pr-2">${note.title}</h3>
-                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="editNote(${note.id})" class="text-blue-500 hover:text-blue-700 transition-colors" title="Edit Note">✏️</button>
-                        <button onclick="deleteNote(${note.id})" class="text-red-400 hover:text-red-600 transition-colors" title="Delete Note">🗑️</button>
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-black text-2xl text-slate-800 flex-1 pr-2 op-font">${note.title}</h3>
+                    <div class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="editNote(${note.id})" class="text-[var(--op-blue)] hover:text-blue-800 transition-colors text-xl" title="Edit Meat">🍖</button>
+                        <button onclick="deleteNote(${note.id})" class="text-[var(--op-red)] hover:text-red-800 transition-colors text-xl" title="Throw Away">🗑️</button>
                     </div>
                 </div>
-                <p class="text-slate-500 leading-relaxed whitespace-pre-wrap">${note.content}</p>
-                <div class="text-xs text-slate-400 mt-4">Added: ${date}</div>
+                <p class="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">${note.content}</p>
+                <div class="text-[10px] text-slate-500 mt-6 font-black uppercase tracking-widest">Logged by Sanji: ${date}</div>
             `;
             container.appendChild(div);
         });
@@ -1312,6 +1310,28 @@ function sortNotes() {
     loadNotes();
 }
 
+
+// --- WANTED POSTER SYSTEM ---
+function showWantedPoster() {
+    const modal = document.getElementById('wanted-modal');
+    const bountyEl = document.getElementById('wanted-bounty');
+
+    // Calculate a "bounty" based on total vocab count (simulated for now)
+    const vocabCount = parseInt(document.getElementById('stat-vocab-count').innerText) || 100;
+    const bounty = (vocabCount * 1250000).toLocaleString();
+
+    bountyEl.innerText = bounty;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Play a sound effect if you like (optional)
+}
+
+function hideWantedModal() {
+    const modal = document.getElementById('wanted-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
 
 // --- INITIALIZATION ---
 window.onload = async function () {
