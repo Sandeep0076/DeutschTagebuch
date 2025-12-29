@@ -62,28 +62,156 @@ Get ready to set sail on your journey to German fluency with this **Cloudflare-p
 
 ## 🚢 Deployment to Cloudflare
 
-### 1. Deploy the Backend Worker
-1.  Enter the worker directory: `cd backend-worker`
-2.  Deploy with Wrangler: `npx wrangler deploy`
-3.  **Note your worker URL** (e.g., `https://deutschtagebuch-api.your-subdomain.workers.dev`).
+### Prerequisites for Deployment
+- Cloudflare account (free tier available)
+- GitHub account (for automatic deployments)
+- Your code pushed to a GitHub repository
 
-### 2. Set Production Secrets
-Run these commands in the `backend-worker` directory to set your secrets on Cloudflare:
+### Step 1: Deploy the Backend Worker
+
+1. **Push your code to GitHub** (if not already done):
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Deploy via Cloudflare Dashboard**:
+   - Log in to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Go to **Workers & Pages**
+   - Click **Create Application** → **Create Worker**
+   - Click **Deploy** on the Git repository option
+   - **Select your GitHub repository**
+   - Configure deployment:
+     - **Project name**: `deutschtagebuch-api`
+     - **Production branch**: `main`
+     - **Build command**: Leave empty or use `npm install`
+     - **Root directory**: `backend-worker`
+   - Click **Save and Deploy**
+
+3. **Note your Worker URL** (e.g., `https://deutschtagebuch-api.your-subdomain.workers.dev`)
+
+4. **Configure Environment Variables**:
+   - In the Cloudflare dashboard, go to your worker
+   - Navigate to **Settings** → **Variables and Secrets**
+   - Click **Add Variable** for each of these:
+     - `SUPABASE_URL`: Your Supabase project URL
+     - `SUPABASE_ANON_KEY`: Your Supabase anonymous key
+     - `GEMINI_API_KEY`: Your Google Gemini API key
+   - Click **Save and Deploy** after adding all variables
+
+5. **Test your backend**:
+   - Visit: `https://deutschtagebuch-api.your-subdomain.workers.dev/health`
+   - You should see: `{"status":"ok","timestamp":"..."}`
+
+### Step 2: Update Frontend Configuration
+
+1. **Update API URL in frontend**:
+   - The file `frontend/app.js` already has dynamic configuration
+   - Verify the production URL matches your deployed Worker:
+   ```javascript
+   const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+       ? 'http://localhost:8789'
+       : 'https://deutschtagebuch-api.your-subdomain.workers.dev';
+   ```
+
+2. **Commit the changes**:
+   ```bash
+   git add frontend/app.js
+   git commit -m "Update production API URL"
+   git push origin main
+   ```
+
+### Step 3: Deploy Frontend to Cloudflare Pages
+
+1. **Ensure wrangler.toml exists in root**:
+   - A `wrangler.toml` file should exist in your project root with:
+   ```toml
+   name = "deutschtagebuch-frontend"
+   compatibility_date = "2025-12-29"
+
+   [assets]
+   directory = "./frontend"
+   ```
+
+2. **Deploy via Cloudflare Dashboard**:
+   - In Cloudflare Dashboard, go to **Workers & Pages**
+   - Click **Create Application** → **Pages**
+   - Click **Connect to Git**
+   - **Select the same GitHub repository**
+   - Configure deployment:
+     - **Project name**: `deutschtagebuch-frontend`
+     - **Production branch**: `main`
+     - **Framework preset**: None
+     - **Build command**: Leave empty (or `exit 0`)
+     - **Build output directory**: `frontend`
+   - Click **Save and Deploy**
+
+3. **Wait for deployment** (usually 1-2 minutes)
+
+4. **Your app is live!**
+   - Frontend: `https://deutschtagebuch-frontend.your-pages.dev`
+   - Backend: `https://deutschtagebuch-api.your-workers.dev`
+
+### Step 4: Verify Deployment
+
+1. **Test the frontend**:
+   - Open your frontend URL
+   - Check browser console for any errors
+   - Try creating a journal entry
+
+2. **Test the backend connection**:
+   - The frontend should load data from the dashboard
+   - Try translating text
+   - Add vocabulary words
+
+### Troubleshooting Deployment
+
+**Backend shows 404 errors:**
+- Check that environment variables are set correctly in Cloudflare dashboard
+- Verify the Worker URL in `frontend/app.js` matches your deployment
+- Check Worker logs in Cloudflare dashboard
+
+**Frontend not connecting to backend:**
+- Ensure the API_BASE URL in `frontend/app.js` is correct
+- Check browser console for CORS errors
+- Verify backend is responding at `/health` endpoint
+
+**Database errors:**
+- Confirm environment variables are set in Worker settings
+- Test Supabase connection from Supabase dashboard
+- Check Worker logs for detailed error messages
+
+**Translation not working:**
+- Verify GEMINI_API_KEY is set correctly
+- Check Gemini API quota at ai.google.dev
+- Review Worker logs for API errors
+
+### Alternative: Deploy via Wrangler CLI
+
+If you prefer command-line deployment:
+
+**Backend:**
 ```bash
+cd backend-worker
+npx wrangler deploy
 npx wrangler secret put SUPABASE_URL
 npx wrangler secret put SUPABASE_ANON_KEY
 npx wrangler secret put GEMINI_API_KEY
 ```
 
-### 3. Update Frontend API Link
-1.  Open `frontend/app.js`.
-2.  Update the production URL in the `API_BASE` variable to your new Worker URL.
+**Frontend:**
+```bash
+# From project root
+npx wrangler pages deploy frontend --project-name=deutschtagebuch-frontend
+```
 
-### 4. Deploy Frontend to Cloudflare Pages
-1.  From the root directory:
-    ```bash
-    npx wrangler pages deploy frontend --project-name=deutschtagebuch
-    ```
+### Continuous Deployment
+
+Once set up via Git:
+- **Automatic deployments**: Every push to `main` triggers a new deployment
+- **Preview deployments**: Pull requests create preview URLs
+- **Rollback**: Easily rollback to previous deployments in the dashboard
 
 ---
 

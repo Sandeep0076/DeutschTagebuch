@@ -45,63 +45,148 @@ A full-stack web application for daily German language practice with AI-powered 
 ## Technology Stack
 
 **Backend:**
-- Node.js & Express.js
+- Cloudflare Workers with Hono framework
 - Supabase (PostgreSQL database)
 - Google Gemini AI API for translations
 - RESTful API architecture
+- Serverless edge computing
 
 **Frontend:**
+- Cloudflare Pages (Static Site Hosting)
 - HTML5, CSS3 (Tailwind CSS)
 - Vanilla JavaScript
 - Chart.js for visualizations
 - One Piece anime-themed UI
 
-## Installation
+**Infrastructure:**
+- Cloudflare Workers for backend API
+- Cloudflare Pages for frontend hosting
+- Serverless deployment with global CDN
+- Git-based continuous deployment
+
+## Installation & Local Development
 
 ### Prerequisites
 - Node.js v18 or higher
 - npm (comes with Node.js)
-- Supabase account (free tier available)
-- Google Gemini API key (free tier available)
+- Supabase account (free tier available at https://supabase.com)
+- Google Gemini API key (free tier available at https://ai.google.dev)
+- Cloudflare account (free tier available - for deployment only)
 
-### Setup Steps
+### Local Setup Steps
 
-1. **Clone or navigate to the project directory:**
+1. **Clone the repository:**
    ```bash
+   git clone <your-repo-url>
    cd DeutschTagebuch
    ```
 
 2. **Install dependencies:**
    ```bash
    npm install
+   cd backend-worker && npm install
+   cd ..
    ```
 
 3. **Configure environment variables:**
-   Create a `.env` file in the root directory:
+   Create `backend-worker/.dev.vars` for local development:
    ```env
    SUPABASE_URL=your_supabase_project_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
    GEMINI_API_KEY=your_gemini_api_key
-   PORT=3000
    ```
 
 4. **Set up Supabase database:**
-   - Create a new Supabase project
-   - Run the schema from `backend/supabase-schema.sql`
-   - Configure your environment variables
+   - Create a new Supabase project at https://supabase.com
+   - Go to SQL Editor in your Supabase dashboard
+   - Copy and run the schema from `backend-worker/supabase-schema.sql`
+   - Note your project URL and anon key from Settings → API
 
-5. **Start the server:**
-   ```bash
-   npm start
-   ```
-
-   For development with auto-restart:
+5. **Start development servers:**
    ```bash
    npm run dev
    ```
+   This runs both:
+   - Frontend at http://localhost:3000
+   - Backend API at http://localhost:8789
 
 6. **Open your browser:**
    Navigate to `http://localhost:3000`
+
+## Deployment to Cloudflare
+
+### Quick Deployment Guide
+
+For detailed step-by-step instructions, see [`QUICKSTART.md`](QUICKSTART.md).
+
+### Deployment Overview
+
+This app is designed to run on Cloudflare's edge network:
+- **Backend**: Deployed as a Cloudflare Worker
+- **Frontend**: Deployed on Cloudflare Pages
+
+### Prerequisites for Deployment
+- Cloudflare account (free tier)
+- GitHub account with your code in a repository
+- Supabase project already set up
+- Google Gemini API key
+
+### Backend Deployment (Cloudflare Workers)
+
+1. **Via Cloudflare Dashboard** (Recommended):
+   - Go to Workers & Pages → Create Application → Create Worker
+   - Connect your GitHub repository
+   - Set project name: `deutschtagebuch-api`
+   - Set root directory: `backend-worker`
+   - Deploy
+
+2. **Configure Environment Variables**:
+   In Worker Settings → Variables and Secrets, add:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+   - `GEMINI_API_KEY`
+
+3. **Test**: Visit `https://your-worker.workers.dev/health`
+
+### Frontend Deployment (Cloudflare Pages)
+
+1. **Ensure `wrangler.toml` exists in project root**:
+   ```toml
+   name = "deutschtagebuch-frontend"
+   compatibility_date = "2025-12-29"
+
+   [assets]
+   directory = "./frontend"
+   ```
+
+2. **Via Cloudflare Dashboard**:
+   - Go to Workers & Pages → Create Application → Pages
+   - Connect to Git → Select your repository
+   - Set project name: `deutschtagebuch-frontend`
+   - Framework preset: None
+   - Build output directory: `frontend`
+   - Deploy
+
+3. **Update API URL** in `frontend/app.js`:
+   ```javascript
+   const API_BASE = 'https://your-worker-name.workers.dev';
+   ```
+
+### Deployment Verification
+
+1. Check frontend loads at your Pages URL
+2. Verify backend responds at `/health` endpoint
+3. Test creating a journal entry
+4. Confirm vocabulary and translation features work
+
+### Continuous Deployment
+
+Once connected to Git:
+- Every push to `main` branch triggers automatic deployment
+- Pull requests create preview deployments
+- Easy rollback to previous versions in dashboard
+
+For detailed troubleshooting and advanced deployment options, see [`QUICKSTART.md`](QUICKSTART.md).
 
 ## Usage
 
@@ -252,23 +337,57 @@ See `backend/supabase-schema.sql` for complete schema details.
 
 ## Configuration
 
-### Environment Variables
-Create a `.env` file with:
+### Local Development Environment Variables
+
+Create `backend-worker/.dev.vars` for local development:
 ```env
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 GEMINI_API_KEY=your_gemini_api_key
-PORT=3000
 ```
 
-### Port Configuration
-Default port is 3000. To change, update the `PORT` variable in `.env`
+### Production Environment Variables (Cloudflare)
+
+Set these in Cloudflare Dashboard → Worker Settings → Variables and Secrets:
+- `SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_ANON_KEY`: Your Supabase anonymous key
+- `GEMINI_API_KEY`: Your Google Gemini API key
+
+### Worker Configuration
+
+Backend configuration in `backend-worker/wrangler.toml`:
+```toml
+name = "deutschtagebuch-api"
+main = "index.js"
+compatibility_date = "2024-11-01"
+```
+
+### Frontend Configuration
+
+Frontend Pages configuration in root `wrangler.toml`:
+```toml
+name = "deutschtagebuch-frontend"
+compatibility_date = "2025-12-29"
+
+[assets]
+directory = "./frontend"
+```
+
+### API Endpoint Configuration
+
+Update the backend URL in `frontend/app.js`:
+```javascript
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:8789'
+    : 'https://your-worker-name.workers.dev';
+```
 
 ### Translation API
 The app uses Google Gemini AI (free tier):
 - High-quality AI-powered translations
 - Bidirectional translation support
-- Requires API key (free tier available at ai.google.dev)
+- Requires API key (free tier available at https://ai.google.dev)
+- No CORS issues on Cloudflare Workers
 
 ## Troubleshooting
 
@@ -306,20 +425,22 @@ The app uses Google Gemini AI (free tier):
 ### Project Structure
 ```
 DeutschTagebuch/
-├── index.html              # Frontend UI (One Piece themed)
-├── app.js                  # Frontend JavaScript logic
-├── server.js               # Express server
-├── package.json            # Dependencies
-├── .env                    # Environment variables (not in git)
-├── assets/                 # Images and icons
-│   ├── luffy_portrait.png
-│   ├── nautical_map_bg.png
-│   ├── straw_hat_icon.png
-│   └── wanted_poster_frame.png
-├── backend/
-│   ├── supabase.js         # Supabase client initialization
-│   ├── supabase-schema.sql # Database schema
-│   ├── routes/             # API route handlers
+├── frontend/                      # Cloudflare Pages (Static Site)
+│   ├── index.html                # Main UI (One Piece themed)
+│   ├── app.js                    # Frontend JavaScript logic
+│   └── assets/                   # Images and icons
+│       ├── luffy_portrait.png
+│       ├── nautical_map_bg.png
+│       ├── straw_hat_icon.png
+│       └── wanted_poster_frame.png
+├── backend-worker/                # Cloudflare Worker (API)
+│   ├── index.js                  # Hono app entry point
+│   ├── wrangler.toml             # Worker configuration
+│   ├── .dev.vars                 # Local environment variables (not in git)
+│   ├── package.json              # Worker dependencies
+│   ├── supabase.js               # Supabase client
+│   ├── supabase-schema.sql       # Database schema
+│   ├── routes/                   # API route handlers
 │   │   ├── journal.js
 │   │   ├── vocabulary.js
 │   │   ├── phrases.js
@@ -329,11 +450,15 @@ DeutschTagebuch/
 │   │   ├── search.js
 │   │   ├── notes.js
 │   │   └── data.js
-│   └── services/           # Business logic
+│   └── services/                 # Business logic
 │       ├── gemini-translation.js
 │       ├── translation.js
 │       └── vocabulary-extractor.js
-└── plans/                  # Architecture docs
+├── wrangler.toml                  # Frontend Pages configuration
+├── package.json                   # Root dev scripts
+├── QUICKSTART.md                  # Deployment guide
+├── README.md                      # This file
+└── plans/                         # Architecture docs
     └── architecture.md
 ```
 
