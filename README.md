@@ -42,6 +42,58 @@ A full-stack web application for daily German language practice with AI-powered 
 - Bidirectional translation (English ↔ German)
 - Handles multiple sentences and complex text
 
+🗺️ **30-Day Journey Map (New!)**
+- Gamified learning journey with visual progress tracking
+- One Piece themed nautical map with 30 waypoints
+- Milestone landmarks at days 7, 14, 21, and 30
+- Achievement system with unlockable badges
+- Real-time progress updates from daily activities
+- Celebration animations at milestones
+- Mobile-responsive design
+
+## Journey Map Feature
+
+The 30-Day Journey Map transforms your German learning into an epic adventure! Track your progress across a nautical-themed map inspired by One Piece, with waypoints representing each day of your learning journey.
+
+### Key Features
+- **Visual Progress Tracking**: See your 30-day journey at a glance with an interactive map
+- **Themed Landmarks**: Unlock special landmarks at milestone days (Grammar Fort, Vocab Island, Quiz Bridge, Treasure Island)
+- **Achievement System**: Earn badges and achievements for reaching milestones and completing challenges
+- **Real-time Updates**: Your map updates automatically as you complete journal entries, add vocabulary, and practice
+- **Gamification**: Stay motivated with progress bars, celebrations, and visual rewards
+
+### Quick Setup
+
+1. **Run the database setup:**
+   ```bash
+   cd backend-worker
+   npm run setup-journey
+   ```
+   Follow the instructions to run [`journey-schema.sql`](backend-worker/journey-schema.sql) in Supabase SQL Editor.
+
+2. **Start the application:**
+   ```bash
+   npm run dev
+   ```
+
+3. **View your Journey Map:**
+   - Open http://localhost:3000
+   - Navigate to the Dashboard
+   - Your journey map will display with day 1 as your current position
+
+### Documentation
+- **Full Architecture**: [`plans/journey-map-system.md`](plans/journey-map-system.md)
+- **Testing Guide**: [`JOURNEY_MAP_TESTING.md`](JOURNEY_MAP_TESTING.md)
+- **Implementation**: [`backend-worker/routes/journey.js`](backend-worker/routes/journey.js) and [`frontend/components/journey-map.js`](frontend/components/journey-map.js)
+
+### Screenshot
+> *[Add your journey map screenshot here]*
+>
+> To add a screenshot:
+> 1. Take a screenshot of your journey map
+> 2. Save it as `journey-map-screenshot.png` in the project root
+> 3. Update this section with: `![Journey Map](journey-map-screenshot.png)`
+
 ## Technology Stack
 
 **Backend:**

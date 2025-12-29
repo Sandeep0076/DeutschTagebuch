@@ -14,7 +14,8 @@ const state = {
     englishBullets: [],
     germanBullets: [],
     selectedCategoryId: 'all',
-    categories: []
+    categories: [],
+    journeyMap: null
 };
 
 // --- API HELPER FUNCTIONS ---
@@ -91,7 +92,12 @@ function navTo(viewId) {
         loadCategories();
         loadVocabulary();
     }
-    if (viewId === 'dashboard') loadDashboard();
+    if (viewId === 'dashboard') {
+        loadDashboard();
+        if (state.journeyMap) {
+            state.journeyMap.refresh();
+        }
+    }
     if (viewId === 'phrases') loadPhrases();
     if (viewId === 'journal') {
         initializeBulletPoints();
@@ -126,6 +132,11 @@ function updateTimerDisplay() {
 
     const percentage = Math.min((state.timer / 3600) * 100, 100);
     document.getElementById('timer-bar').style.width = `${percentage}%`;
+
+    // Update journey activity every minute
+    if (state.timer > 0 && state.timer % 60 === 0) {
+        updateJourneyActivity({ minutes_practiced: 1 });
+    }
 }
 
 // --- DASHBOARD ---
@@ -176,6 +187,11 @@ async function loadDashboard() {
         const bestStreakEl = streakEl?.nextElementSibling;
         if (bestStreakEl) {
             bestStreakEl.innerHTML = `Personal Best: ${streak.data.longest} Days`;
+        }
+
+        // Initialize journey map if not already initialized
+        if (!state.journeyMap) {
+            initJourneyMap();
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
@@ -499,6 +515,9 @@ async function processEntry() {
         // Show success feedback
         showWantedPoster(); // NEW: Trigger One Piece style notification
 
+        // Update journey activity
+        await updateJourneyActivity({ journal_entries: 1 });
+
         // Clear inputs
         clearJournal();
 
@@ -509,7 +528,7 @@ async function processEntry() {
             await updateUserLevel();
         }
 
-        // Reload journal history 
+        // Reload journal history
         await loadJournalHistory();
     } catch (error) {
         alert('Failed to save entry: ' + error.message);
@@ -880,6 +899,9 @@ async function addWord() {
         wordInput.value = '';
         meaningInput.value = '';
 
+        // Update journey activity
+        await updateJourneyActivity({ vocabulary_added: 1 });
+
         // Reload vocabulary
         await loadVocabulary();
 
@@ -1090,6 +1112,27 @@ function toggleTranslation(index) {
 // --- NOTES (formerly MOTIVATION) ---
 let editingNoteId = null;
 
+// Helper function to make URLs clickable in text
+function linkifyUrls(text) {
+    // Regular expression to match URLs
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
+    // Replace URLs with clickable anchor tags
+    return text.replace(urlRegex, function(url) {
+        // Remove trailing punctuation that shouldn't be part of the URL
+        let cleanUrl = url;
+        let trailingPunctuation = '';
+        const punctuation = /[.,;:!?)]+$/;
+        const match = url.match(punctuation);
+        if (match) {
+            trailingPunctuation = match[0];
+            cleanUrl = url.slice(0, -trailingPunctuation.length);
+        }
+        
+        return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors">${cleanUrl}</a>${trailingPunctuation}`;
+    });
+}
+
 function toggleAddNote() {
     const section = document.getElementById('add-note-section');
     const toggleBtn = document.getElementById('toggle-note-btn');
@@ -1154,7 +1197,7 @@ function renderNotes(notes) {
                         <button onclick="deleteNote(${note.id})" class="text-[var(--op-red)] hover:text-red-800 transition-colors text-xl" title="Throw Away">🗑️</button>
                     </div>
                 </div>
-                <p class="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">${note.content}</p>
+                <p class="text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">${linkifyUrls(note.content)}</p>
                 <div class="text-[10px] text-slate-500 mt-6 font-black uppercase tracking-widest">Logged by Sanji: ${date}</div>
             `;
             container.appendChild(div);
@@ -1285,6 +1328,49 @@ function sortNotes() {
     loadNotes();
 }
 
+
+// --- JOURNEY MAP INTEGRATION ---
+function initJourneyMap() {
+    try {
+        // Create journey map container if not exists in dashboard
+        let container = document.getElementById('journey-map-widget');
+        if (!container) {
+            const dashboardSection = document.getElementById('dashboard');
+            const journeyCard = dashboardSection?.querySelector('.glass-card.p-6.rounded-3xl');
+            if (journeyCard) {
+                // Replace the simple timeline with full journey map
+                container = document.createElement('div');
+                container.id = 'journey-map-widget';
+                journeyCard.innerHTML = '';
+                journeyCard.appendChild(container);
+            }
+        }
+
+        if (container && typeof JourneyMap !== 'undefined') {
+            state.journeyMap = new JourneyMap('journey-map-widget', API_BASE);
+            state.journeyMap.init();
+            console.log('✅ Journey map initialized');
+        }
+    } catch (error) {
+        console.error('Error initializing journey map:', error);
+    }
+}
+
+async function updateJourneyActivity(activity) {
+    try {
+        await apiCall('/journey/update-activity', {
+            method: 'POST',
+            body: JSON.stringify(activity)
+        });
+
+        // Refresh journey map if active
+        if (state.journeyMap && state.currentView === 'dashboard') {
+            await state.journeyMap.refresh();
+        }
+    } catch (error) {
+        console.error('Error updating journey activity:', error);
+    }
+}
 
 // --- WANTED POSTER SYSTEM ---
 function showWantedPoster() {

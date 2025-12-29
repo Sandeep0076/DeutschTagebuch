@@ -9,6 +9,7 @@ import settings from './routes/settings.js'
 import search from './routes/search.js'
 import notes from './routes/notes.js'
 import data from './routes/data.js'
+import journey from './routes/journey.js'
 
 const app = new Hono()
 
@@ -25,5 +26,6 @@ app.route('/settings', settings)
 app.route('/search', search)
 app.route('/notes', notes)
 app.route('/data', data)
+app.route('/journey', journey)
 
 export default app
