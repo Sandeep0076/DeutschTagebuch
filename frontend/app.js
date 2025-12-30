@@ -17,11 +17,18 @@ const state = {
     categories: [],
     journeyMap: null,
     randomWords: [],
-    wordOfTheDay: null
+    wordOfTheDay: null,
+    apiRetryCount: {}, // Track retry attempts per endpoint
+    maxRetries: 3 // Maximum retry attempts
 };
 
 // --- API HELPER FUNCTIONS ---
 async function apiCall(endpoint, options = {}) {
+    // Initialize retry counter for this endpoint
+    if (!state.apiRetryCount[endpoint]) {
+        state.apiRetryCount[endpoint] = 0;
+    }
+
     try {
         console.log(`🔵 API Call: ${API_BASE}${endpoint}`, options);
         const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -35,11 +42,17 @@ async function apiCall(endpoint, options = {}) {
         console.log(`🟢 Response status: ${response.status} for ${endpoint}`);
 
         if (!response.ok) {
-            const error = await response.json();
+            const error = await response.json().catch(() => ({ error: 'Unknown error' }));
             console.error(`🔴 API Error Response:`, error);
-            throw new Error(error.error || 'API request failed');
+            
+            // Reset retry count on successful response (even if error status)
+            state.apiRetryCount[endpoint] = 0;
+            
+            throw new Error(error.error || `API request failed with status ${response.status}`);
         }
 
+        // Reset retry count on success
+        state.apiRetryCount[endpoint] = 0;
         return await response.json();
     } catch (error) {
         console.error(`🔴 API Error for ${endpoint}:`, error);
@@ -48,6 +61,16 @@ async function apiCall(endpoint, options = {}) {
             name: error.name,
             stack: error.stack
         });
+
+        // Increment retry count
+        state.apiRetryCount[endpoint]++;
+        
+        // Check retry limit
+        if (state.apiRetryCount[endpoint] >= state.maxRetries) {
+            console.warn(`⚠️ Max retries (${state.maxRetries}) reached for ${endpoint}. Stopping retries.`);
+            showPersistentError(`Failed to connect to server. Please check your connection and refresh the page.`);
+            throw error;
+        }
 
         // Check if offline
         if (!navigator.onLine) {
@@ -60,11 +83,33 @@ async function apiCall(endpoint, options = {}) {
 }
 
 function showOfflineWarning() {
+    // Remove existing warning first
+    const existing = document.getElementById('offline-warning');
+    if (existing) return; // Don't create duplicates
+    
     const warning = document.createElement('div');
     warning.id = 'offline-warning';
     warning.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-    warning.innerHTML = '⚠️ No connection to server. Please start the backend.';
+    warning.innerHTML = '⚠️ No connection to server. Please check your deployment.';
     document.body.appendChild(warning);
+}
+
+function showPersistentError(message) {
+    // Remove existing error first
+    const existing = document.getElementById('persistent-error');
+    if (existing) existing.remove();
+    
+    const error = document.createElement('div');
+    error.id = 'persistent-error';
+    error.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-8 py-4 rounded-lg shadow-2xl z-50 max-w-md text-center';
+    error.innerHTML = `
+        <div class="font-bold mb-2">⚠️ Server Error</div>
+        <div class="text-sm mb-3">${message}</div>
+        <button onclick="window.location.reload()" class="bg-white text-red-600 px-4 py-2 rounded font-bold hover:bg-red-50 transition-colors">
+            Refresh Page
+        </button>
+    `;
+    document.body.appendChild(error);
 }
 
 function hideOfflineWarning() {

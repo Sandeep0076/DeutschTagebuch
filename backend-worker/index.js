@@ -17,6 +17,17 @@ app.use('*', cors())
 
 app.get('/health', c => c.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
+// Debug endpoint to check environment variables (remove after testing)
+app.get('/debug/env', c => {
+    return c.json({
+        hasSupabaseUrl: !!c.env.SUPABASE_URL,
+        hasSupabaseKey: !!c.env.SUPABASE_ANON_KEY,
+        hasGeminiKey: !!c.env.GEMINI_API_KEY,
+        supabaseUrlLength: c.env.SUPABASE_URL?.length || 0,
+        envKeys: Object.keys(c.env)
+    })
+})
+
 app.route('/journal', journal)
 app.route('/vocabulary', vocabulary)
 app.route('/phrases', phrases)
