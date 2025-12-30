@@ -446,7 +446,7 @@ function createBulletInput(container, language, initialText = '') {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             if (this.value.trim()) {
-                addBulletPoint(language);
+                addBulletPoint(language, '', true); // Focus the new bullet when user presses Enter
             }
         }
     });
@@ -542,7 +542,7 @@ async function addWordFromJournal(germanWord) {
     }
 }
 
-function addBulletPoint(language, text = '') {
+function addBulletPoint(language, text = '', shouldFocus = true) {
     const container = language === 'english'
         ? document.getElementById('english-bullets-container')
         : document.getElementById('german-bullets-container');
@@ -550,9 +550,13 @@ function addBulletPoint(language, text = '') {
     const bulletInput = createBulletInput(container, language, text);
     container.appendChild(bulletInput);
 
-    // Focus the new input
     const textarea = bulletInput.querySelector('textarea');
-    textarea.focus();
+    
+    // Only focus if explicitly requested (e.g., when user manually adds a bullet)
+    // Don't auto-focus on initial load or navigation to prevent keyboard popup on mobile
+    if (shouldFocus) {
+        textarea.focus();
+    }
 
     // Trigger auto-resize
     textarea.style.height = 'auto';
@@ -567,9 +571,9 @@ function initializeBulletPoints() {
     if (enContainer) enContainer.innerHTML = '';
     if (deContainer) deContainer.innerHTML = '';
 
-    // Add initial bullet points
-    addBulletPoint('english');
-    addBulletPoint('german');
+    // Add initial bullet points without auto-focus to prevent keyboard popup on mobile
+    addBulletPoint('english', '', false);
+    addBulletPoint('german', '', false);
 }
 
 function getBulletsText(language) {
@@ -597,9 +601,9 @@ function setBullets(language, bullets) {
     container.innerHTML = '';
 
     if (bullets && bullets.length > 0) {
-        bullets.forEach(text => addBulletPoint(language, text));
+        bullets.forEach(text => addBulletPoint(language, text, false));
     } else {
-        addBulletPoint(language);
+        addBulletPoint(language, '', false);
     }
 }
 
