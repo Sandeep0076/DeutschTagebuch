@@ -1,18 +1,91 @@
 import { Hono } from 'hono'
 import { getSupabaseClient } from '../supabase.js'
+import { translateToGerman, translateToEnglish } from '../services/translation.js'
 
 const router = new Hono()
 
-// Built-in common phrases
+// Built-in common phrases with meanings and examples
 const BUILT_IN_PHRASES = [
-  { english: "I agree with you up to a point.", german: "Ich stimme dir bis zu einem gewissen Punkt zu.", builtin: true },
-  { english: "That depends on...", german: "Das kommt darauf an...", builtin: true },
-  { english: "In my opinion...", german: "Meiner Meinung nach...", builtin: true },
-  { english: "I am not sure if...", german: "Ich bin mir nicht sicher, ob...", builtin: true },
-  { english: "Can you please explain that?", german: "Kannst du das bitte erklären?", builtin: true },
-  { english: "On the one hand... on the other hand...", german: "Einerseits... andererseits...", builtin: true },
-  { english: "It makes no difference to me.", german: "Das ist mir egal.", builtin: true },
-  { english: "I would like to suggest that...", german: "Ich möchte vorschlagen, dass...", builtin: true }
+  {
+    category: "Phrases",
+    phrase: "Meiner Meinung nach...",
+    meaning: "In my opinion...",
+    example_german: "Meiner Meinung nach ist das eine sehr gute Idee.",
+    example_english: "In my opinion, that is a very good idea.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Das kommt darauf an.",
+    meaning: "That depends.",
+    example_german: "Gehen wir heute spazieren? Das kommt auf das Wetter an.",
+    example_english: "Are we going for a walk today? That depends on the weather.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Ich hätte gern...",
+    meaning: "I would like to have...",
+    example_german: "Ich hätte gern ein Glas Wasser, bitte.",
+    example_english: "I would like to have a glass of water, please.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Ehrlich gesagt...",
+    meaning: "To be honest...",
+    example_german: "Ehrlich gesagt habe ich heute keine Lust auf Kino.",
+    example_english: "To be honest, I don't feel like going to the cinema today.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Keine Ahnung!",
+    meaning: "No idea!",
+    example_german: "Weißt du, wo mein Handy ist? Keine Ahnung!",
+    example_english: "Do you know where my phone is? No idea!",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Das macht nichts.",
+    meaning: "It doesn't matter / No problem.",
+    example_german: "Entschuldigung für die Verspätung! Das macht nichts.",
+    example_english: "Sorry for the delay! It doesn't matter.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Wie bitte?",
+    meaning: "Pardon? / What did you say?",
+    example_german: "Wie bitte? Könnten Sie das noch einmal wiederholen?",
+    example_english: "Pardon? Could you repeat that once more?",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Schönen Feierabend!",
+    meaning: "Have a nice evening (after work)!",
+    example_german: "Ich gehe jetzt nach Hause. Schönen Feierabend!",
+    example_english: "I'm going home now. Have a nice evening!",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Vielen Dank im Voraus.",
+    meaning: "Many thanks in advance.",
+    example_german: "Könnten Sie mir die Informationen schicken? Vielen Dank im Voraus.",
+    example_english: "Could you send me the information? Many thanks in advance.",
+    builtin: true
+  },
+  {
+    category: "Phrases",
+    phrase: "Es tut mir leid, dass...",
+    meaning: "I am sorry that...",
+    example_german: "Es tut mir leid, dass ich dich so lange warten ließ.",
+    example_english: "I am sorry that I kept you waiting for so long.",
+    builtin: true
+  }
 ];
 
 /**
@@ -26,7 +99,7 @@ router.get('/', async (c) => {
 
     let query = supabase
       .from('custom_phrases')
-      .select('id, english, german, created_at, times_reviewed, category_id');
+      .select('id, english, german, meaning, example_english, example_german, created_at, times_reviewed, category_id');
 
     // Add category filter
     if (category_id && category_id !== 'all') {
@@ -39,7 +112,11 @@ router.get('/', async (c) => {
 
     if (error) throw error;
 
-    const customWithFlag = (customPhrases || []).map(p => ({ ...p, builtin: false }));
+    const customWithFlag = (customPhrases || []).map(p => ({
+      ...p,
+      phrase: p.german,
+      builtin: false
+    }));
     const allPhrases = [...BUILT_IN_PHRASES, ...customWithFlag];
 
     return c.json({
@@ -163,30 +240,56 @@ router.delete('/categories/:id', async (c) => {
 
 /**
  * POST /api/phrases
- * Add a custom phrase
+ * Add a custom phrase with auto-translation and example generation
  */
 router.post('/', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
     const { english, german, category_id } = await c.req.json();
 
-    if (!english || !german) {
+    if (!english) {
       return c.json({
         success: false,
-        error: 'Both English and German text are required'
+        error: 'English phrase is required'
       }, 400);
     }
 
     const cleanEnglish = english.trim();
-    const cleanGerman = german.trim();
 
-    if (cleanEnglish.length === 0 || cleanGerman.length === 0) {
+    if (cleanEnglish.length === 0) {
       return c.json({
         success: false,
-        error: 'English and German text cannot be empty'
+        error: 'English phrase cannot be empty'
       }, 400);
     }
 
+    // Auto-translate to German if not provided
+    let cleanGerman = german ? german.trim() : '';
+    let meaning = cleanEnglish;
+    let exampleEnglish = `For example: ${cleanEnglish}`;
+    let exampleGerman = '';
+
+    if (!cleanGerman) {
+      try {
+        cleanGerman = await translateToGerman(cleanEnglish, c.env);
+      } catch (error) {
+        console.error('Translation error:', error);
+        return c.json({
+          success: false,
+          error: 'Failed to translate phrase. Please provide German translation manually.'
+        }, 500);
+      }
+    }
+
+    // Generate example sentences
+    try {
+      exampleGerman = await translateToGerman(exampleEnglish, c.env);
+    } catch (error) {
+      console.warn('Failed to generate German example:', error);
+      exampleGerman = cleanGerman;
+    }
+
+    // Check for duplicates
     const { data: existing } = await supabase
       .from('custom_phrases')
       .select('*')
@@ -206,6 +309,9 @@ router.post('/', async (c) => {
       .insert({
         english: cleanEnglish,
         german: cleanGerman,
+        meaning: meaning,
+        example_english: exampleEnglish,
+        example_german: exampleGerman,
         times_reviewed: 0,
         category_id: category_id || null
       })
@@ -218,6 +324,7 @@ router.post('/', async (c) => {
       success: true,
       data: {
         ...newPhrase,
+        phrase: newPhrase.german,
         builtin: false
       }
     }, 201);
@@ -231,6 +338,48 @@ router.post('/', async (c) => {
 });
 
 /**
+ * GET /api/phrases/:id
+ * Get a specific phrase by ID
+ */
+router.get('/:id', async (c) => {
+  try {
+    const supabase = getSupabaseClient(c.env);
+    const id = c.req.param('id');
+
+    const { data: phrase, error } = await supabase
+      .from('custom_phrases')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return c.json({
+          success: false,
+          error: 'Phrase not found'
+        }, 404);
+      }
+      throw error;
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        ...phrase,
+        phrase: phrase.german,
+        builtin: false
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching phrase:', error);
+    return c.json({
+      success: false,
+      error: 'Failed to fetch phrase'
+    }, 500);
+  }
+});
+
+/**
  * PUT /api/phrases/:id
  * Edit an existing custom phrase
  */
@@ -238,7 +387,7 @@ router.put('/:id', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
     const id = c.req.param('id');
-    const { english, german, category_id } = await c.req.json();
+    const { english, german, meaning, example_english, example_german, category_id } = await c.req.json();
 
     if (!english || !german) {
       return c.json({
@@ -296,6 +445,9 @@ router.put('/:id', async (c) => {
       .update({
         english: cleanEnglish,
         german: cleanGerman,
+        meaning: meaning || cleanEnglish,
+        example_english: example_english || `For example: ${cleanEnglish}`,
+        example_german: example_german || cleanGerman,
         category_id: category_id || null
       })
       .eq('id', id)
@@ -308,6 +460,7 @@ router.put('/:id', async (c) => {
       success: true,
       data: {
         ...updatedPhrase,
+        phrase: updatedPhrase.german,
         builtin: false
       }
     });

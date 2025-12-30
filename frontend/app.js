@@ -1335,22 +1335,37 @@ function renderPhrases(phrases) {
                 title="Edit Phrase">✏️</button>
         ` : '';
 
+        // Use phrase field (German) or fallback to german field
+        const germanPhrase = phrase.phrase || phrase.german;
+        const meaning = phrase.meaning || phrase.english;
+        const exampleGerman = phrase.example_german || germanPhrase;
+        const exampleEnglish = phrase.example_english || `For example: ${phrase.english}`;
+
         div.innerHTML = `
             ${editButton}
-            <div class="p-8" onclick="toggleTranslation(${index})">
-                <div class="flex justify-between items-start mb-4">
-                    <span class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest op-font">English Melody</span>
+            <div class="p-6" onclick="toggleTranslation(${index})">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest op-font">German Phrase</span>
                     <div class="flex gap-2 items-center">
                         ${customBadge}
-                        <span class="text-[10px] text-slate-400 group-hover:text-[var(--op-red)] transition-colors font-black uppercase">Play Note</span>
+                        <span class="text-[10px] text-slate-400 group-hover:text-[var(--op-red)] transition-colors font-black uppercase">View Details</span>
                     </div>
                 </div>
-                <p class="text-2xl text-slate-800 font-bold leading-relaxed op-font">${phrase.english}</p>
+                <p class="text-2xl text-slate-800 font-bold leading-relaxed op-font mb-3">${germanPhrase}</p>
+                <div class="text-sm text-slate-600 italic">${meaning}</div>
             </div>
-            <div id="phrase-de-${index}" class="bg-[var(--op-yellow)]/20 p-8 border-t-2 border-dashed border-[#5d3615] hidden" onclick="toggleTranslation(${index})">
-                <div class="text-[10px] font-black text-[var(--op-red)] uppercase tracking-widest mb-2 op-font">Brook's Translation (Deutsch)</div>
-                <p class="text-3xl font-black text-[#5d3615] tracking-tight op-font">${phrase.german}</p>
-                <div class="mt-4 text-[10px] text-slate-500 italic">Yo-ho-ho-ho! 🎻</div>
+            <div id="phrase-de-${index}" class="bg-[var(--op-yellow)]/20 p-6 border-t-2 border-dashed border-[#5d3615] hidden" onclick="toggleTranslation(${index})">
+                <div class="space-y-4">
+                    <div>
+                        <div class="text-[10px] font-black text-[var(--op-red)] uppercase tracking-widest mb-2 op-font">🇩🇪 German Example</div>
+                        <p class="text-lg font-bold text-[#5d3615] op-font">${exampleGerman}</p>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest mb-2 op-font">🇬🇧 English Example</div>
+                        <p class="text-lg font-medium text-slate-700">${exampleEnglish}</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-[10px] text-slate-500 italic text-center">Yo-ho-ho-ho! 🎻</div>
             </div>
         `;
         container.appendChild(div);
@@ -1374,6 +1389,14 @@ async function addPhrase() {
     if (!english) {
         alert('Please enter an English phrase!');
         return;
+    }
+
+    // Show loading state
+    const addBtn = event?.target?.closest('button') || document.querySelector('button[onclick="addPhrase()"]');
+    const originalText = addBtn?.innerHTML;
+    if (addBtn) {
+        addBtn.innerHTML = '<span>⏳</span> Translating & Adding...';
+        addBtn.disabled = true;
     }
 
     try {
@@ -1401,7 +1424,7 @@ async function addPhrase() {
         // Show success feedback
         const successMsg = document.createElement('div');
         successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-        successMsg.innerHTML = '✓ Phrase added successfully!';
+        successMsg.innerHTML = '✓ Phrase added successfully with auto-translation!';
         document.body.appendChild(successMsg);
 
         setTimeout(() => successMsg.remove(), 3000);
@@ -1412,6 +1435,11 @@ async function addPhrase() {
         }
     } catch (error) {
         alert('Failed to add phrase: ' + error.message);
+    } finally {
+        if (addBtn) {
+            addBtn.innerHTML = originalText;
+            addBtn.disabled = false;
+        }
     }
 }
 
@@ -1553,8 +1581,8 @@ async function showEditPhraseModal(event, phraseId) {
         const phrase = result.data;
 
         // Populate the modal
-        document.getElementById('edit-phrase-english').value = phrase.english;
-        document.getElementById('edit-phrase-german').value = phrase.german;
+        document.getElementById('edit-phrase-english').value = phrase.english || '';
+        document.getElementById('edit-phrase-german').value = phrase.german || '';
         document.getElementById('edit-phrase-category').value = phrase.category_id || '';
 
         editingPhraseId = phraseId;
@@ -1598,8 +1626,22 @@ async function updatePhrase() {
         return;
     }
 
+    // Show loading state
+    const updateBtn = event?.target?.closest('button') || document.querySelector('button[onclick="updatePhrase()"]');
+    const originalText = updateBtn?.innerHTML;
+    if (updateBtn) {
+        updateBtn.innerHTML = '<span>⏳</span> Updating...';
+        updateBtn.disabled = true;
+    }
+
     try {
-        const payload = { english, german };
+        const payload = {
+            english,
+            german,
+            meaning: english,
+            example_english: `For example: ${english}`,
+            example_german: german
+        };
         if (category_id) {
             payload.category_id = category_id;
         }
@@ -1621,6 +1663,11 @@ async function updatePhrase() {
         setTimeout(() => successMsg.remove(), 3000);
     } catch (error) {
         alert('Failed to update phrase: ' + error.message);
+    } finally {
+        if (updateBtn) {
+            updateBtn.innerHTML = originalText;
+            updateBtn.disabled = false;
+        }
     }
 }
 

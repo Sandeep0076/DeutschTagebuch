@@ -1333,10 +1333,10 @@
                     <div id="add-phrase-section" class="hidden glass-card p-3 sm:p-6 rounded-[24px] !bg-white/60 animate-fade-in">
                         <h3 class="font-bold text-lg text-slate-800 mb-4">Add New Phrase</h3>
                         <div class="flex flex-col gap-3">
-                            <input type="text" id="new-phrase-english" placeholder="English phrase..."
+                            <input type="text" id="new-phrase-english" placeholder="Enter English phrase (e.g., 'How are you?')..."
                                 class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300"
                                 onkeypress="if(event.key === 'Enter') addPhrase()">
-                            <input type="text" id="new-phrase-german" placeholder="German translation (optional)..."
+                            <input type="text" id="new-phrase-german" placeholder="German translation (optional - will auto-translate)..."
                                 class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300"
                                 onkeypress="if(event.key === 'Enter') addPhrase()">
                             <div class="flex gap-3">
@@ -1351,7 +1351,12 @@
                                 </button>
                             </div>
                         </div>
-                        <p class="text-xs text-slate-400 mt-2">💡 Tip: Leave German translation blank to auto-translate from English to German</p>
+                        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p class="text-xs text-blue-700 font-medium">
+                                <span class="font-bold">✨ Auto-Translation:</span> Just enter the English phrase and click "Add Phrase".
+                                The system will automatically translate it to German and generate example sentences in both languages!
+                            </p>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="phrases-container">
