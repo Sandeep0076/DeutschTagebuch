@@ -19,8 +19,16 @@ const state = {
     randomWords: [],
     wordOfTheDay: null,
     apiRetryCount: {}, // Track retry attempts per endpoint
-    maxRetries: 3 // Maximum retry attempts
+    maxRetries: 3, // Maximum retry attempts
+    // Swipe gesture state
+    touchStartX: 0,
+    touchStartY: 0,
+    touchEndX: 0,
+    touchEndY: 0
 };
+
+// Navigation order for swipe gestures
+const navigationOrder = ['dashboard', 'journal', 'vocabulary', 'phrases', 'motivation'];
 
 // --- API HELPER FUNCTIONS ---
 async function apiCall(endpoint, options = {}) {
@@ -1575,6 +1583,94 @@ function hideWantedModal() {
     modal.classList.remove('flex');
 }
 
+// --- SWIPE GESTURE HANDLING ---
+function handleTouchStart(e) {
+    state.touchStartX = e.changedTouches[0].screenX;
+    state.touchStartY = e.changedTouches[0].screenY;
+}
+
+function handleTouchEnd(e) {
+    state.touchEndX = e.changedTouches[0].screenX;
+    state.touchEndY = e.changedTouches[0].screenY;
+    handleSwipeGesture();
+}
+
+function handleSwipeGesture() {
+    const minSwipeDistance = 50; // Minimum distance for a swipe to register
+    const maxVerticalDistance = 100; // Maximum vertical movement to still count as horizontal swipe
+    
+    const deltaX = state.touchEndX - state.touchStartX;
+    const deltaY = Math.abs(state.touchEndY - state.touchStartY);
+    
+    // Check if it's a horizontal swipe (not too much vertical movement)
+    if (deltaY > maxVerticalDistance) {
+        return; // Too much vertical movement, ignore
+    }
+    
+    // Swipe right (previous section)
+    if (deltaX > minSwipeDistance) {
+        navigateToPrevious();
+    }
+    // Swipe left (next section)
+    else if (deltaX < -minSwipeDistance) {
+        navigateToNext();
+    }
+}
+
+function navigateToNext() {
+    const currentIndex = navigationOrder.indexOf(state.currentView);
+    if (currentIndex < navigationOrder.length - 1) {
+        const nextView = navigationOrder[currentIndex + 1];
+        navTo(nextView);
+        showSwipeIndicator('Next: ' + getViewDisplayName(nextView), 'left');
+    }
+}
+
+function navigateToPrevious() {
+    const currentIndex = navigationOrder.indexOf(state.currentView);
+    if (currentIndex > 0) {
+        const prevView = navigationOrder[currentIndex - 1];
+        navTo(prevView);
+        showSwipeIndicator('Previous: ' + getViewDisplayName(prevView), 'right');
+    }
+}
+
+function getViewDisplayName(viewId) {
+    const displayNames = {
+        'dashboard': "Captain's Log",
+        'journal': "Zoro's Training",
+        'vocabulary': "Nami's Maps",
+        'phrases': "Brook's Songs",
+        'motivation': "Sanji's Notes"
+    };
+    return displayNames[viewId] || viewId;
+}
+
+function showSwipeIndicator(message, direction) {
+    // Remove existing indicator if any
+    const existing = document.getElementById('swipe-indicator');
+    if (existing) existing.remove();
+    
+    const indicator = document.createElement('div');
+    indicator.id = 'swipe-indicator';
+    indicator.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg z-50 animate-bounce-in font-bold';
+    indicator.style.animation = 'fade-in 0.3s ease-out';
+    indicator.innerHTML = `
+        <div class="flex items-center gap-2">
+            <span>${direction === 'left' ? '←' : '→'}</span>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => {
+        indicator.style.opacity = '0';
+        indicator.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => indicator.remove(), 300);
+    }, 1500);
+}
+
 // --- INITIALIZATION ---
 window.onload = async function () {
     // Check server connection
@@ -1606,6 +1702,13 @@ window.onload = async function () {
 
     // Setup mobile menu
     document.getElementById('mobile-menu-btn').addEventListener('click', toggleMobileMenu);
+
+    // Setup swipe gestures on main content area
+    const mainContent = document.querySelector('main');
+    if (mainContent) {
+        mainContent.addEventListener('touchstart', handleTouchStart, { passive: true });
+        mainContent.addEventListener('touchend', handleTouchEnd, { passive: true });
+    }
 
     // Monitor online/offline status
     window.addEventListener('online', () => {
