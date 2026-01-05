@@ -509,6 +509,16 @@ async function startDailyTask(taskId, durationMinutes) {
         // Set active task
         state.activeTaskId = taskId;
         state.taskRemainingSeconds = durationMinutes * 60;
+        state.taskStartEpoch = Date.now();
+        try {
+            localStorage.setItem('dt_activeTask', JSON.stringify({
+                taskId,
+                startEpoch: state.taskStartEpoch,
+                totalSeconds: durationMinutes * 60
+            }));
+        } catch (e) {
+            console.log('LocalStorage not available for task start persistence');
+        }
         
         // Update UI
         const taskBlock = document.querySelector(`[data-task-id="${taskId}"]`);
@@ -535,22 +545,42 @@ function startTaskTimer(taskId, durationMinutes) {
         clearInterval(state.taskTimerInterval);
     }
     
+    // Persist start and duration for resilience across tab inactivity/reloads
+    const totalSeconds = durationMinutes * 60;
+    if (!state.taskStartEpoch) {
+        state.taskStartEpoch = Date.now();
+    }
+    try {
+        localStorage.setItem('dt_activeTask', JSON.stringify({
+            taskId,
+            startEpoch: state.taskStartEpoch,
+            totalSeconds
+        }));
+    } catch (e) {
+        console.log('LocalStorage not available for task timer persistence');
+    }
+
     state.taskTimerInterval = setInterval(() => {
-        state.taskRemainingSeconds--;
-        
+        // Compute elapsed based on wall-clock time to avoid throttling pauses
+        const now = Date.now();
+        const elapsed = Math.floor((now - state.taskStartEpoch) / 1000);
+        state.taskRemainingSeconds = Math.max(totalSeconds - elapsed, 0);
+
         // Update timer display
         const taskBlock = document.querySelector(`[data-task-id="${taskId}"]`);
         if (taskBlock) {
             const minutes = Math.floor(state.taskRemainingSeconds / 60);
             const seconds = state.taskRemainingSeconds % 60;
             const timerDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            taskBlock.querySelector('.task-timer').textContent = timerDisplay;
+            const timerEl = taskBlock.querySelector('.task-timer');
+            if (timerEl) timerEl.textContent = timerDisplay;
         }
-        
+
         // Check if timer finished
         if (state.taskRemainingSeconds <= 0) {
             clearInterval(state.taskTimerInterval);
             state.taskTimerInterval = null;
+            try { localStorage.removeItem('dt_activeTask'); } catch (e) {}
             completeDailyTask(taskId);
         }
     }, 1000);
@@ -2125,7 +2155,35 @@ window.onload = async function () {
     await loadRandomWords();
     state.wordOfTheDay = getWordOfTheDay();
 
-    // Start timer
+    // Resume any active task timer from storage
+    try {
+        const persisted = localStorage.getItem('dt_activeTask');
+        if (persisted) {
+            const { taskId, startEpoch, totalSeconds } = JSON.parse(persisted);
+            state.activeTaskId = taskId;
+            state.taskStartEpoch = startEpoch;
+            const elapsed = Math.floor((Date.now() - startEpoch) / 1000);
+            state.taskRemainingSeconds = Math.max(totalSeconds - elapsed, 0);
+            // Update UI state for the task block
+            const taskBlock = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskBlock) {
+                taskBlock.classList.add('task-in-progress');
+                const minutes = Math.floor(state.taskRemainingSeconds / 60);
+                const seconds = state.taskRemainingSeconds % 60;
+                const timerDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const timerEl = taskBlock.querySelector('.task-timer');
+                if (timerEl) timerEl.textContent = timerDisplay;
+                const statusEl = taskBlock.querySelector('.task-status');
+                if (statusEl) statusEl.textContent = 'In progress...';
+            }
+            // Restart interval based on timestamp
+            startTaskTimer(taskId, Math.ceil(totalSeconds / 60));
+        }
+    } catch (e) {
+        // ignore
+    }
+
+    // Start global session timer
     startTimer();
 
     // Load initial data
