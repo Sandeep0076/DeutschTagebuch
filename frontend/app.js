@@ -10,9 +10,6 @@ const state = {
     timerInterval: null,
     sessionStart: Date.now(),
     isOnline: true,
-    editingEntryId: null,
-    englishBullets: [],
-    germanBullets: [],
     selectedCategoryId: 'all',
     categories: [],
     editingWordId: null,
@@ -34,7 +31,7 @@ const state = {
 };
 
 // Navigation order for swipe gestures
-const navigationOrder = ['dashboard', 'journal', 'phrases', 'motivation'];
+const navigationOrder = ['dashboard', 'phrases', 'motivation'];
 
 // --- API HELPER FUNCTIONS ---
 async function apiCall(endpoint, options = {}) {
@@ -159,10 +156,6 @@ function navTo(viewId) {
     if (viewId === 'phrases') {
         loadPhraseCategories();
         loadPhrases();
-    }
-    if (viewId === 'journal') {
-        initializeBulletPoints();
-        loadJournalHistory();
     }
     if (viewId === 'motivation') loadNotes();
 }
@@ -704,469 +697,6 @@ function checkDayReset() {
     localStorage.setItem('last_task_check_date', today);
 }
 
-// --- BULLET POINT MANAGEMENT ---
-function createBulletInput(container, language, initialText = '') {
-    const bulletDiv = document.createElement('div');
-    bulletDiv.className = 'flex flex-col gap-2 group relative'; // Changed to flex-col to accommodate preview
-
-    const mainRow = document.createElement('div');
-    mainRow.className = 'flex items-start gap-2';
-
-    const bullet = document.createElement('span');
-    bullet.className = 'text-slate-400 mt-2 select-none';
-    bullet.textContent = '•';
-
-    const input = document.createElement('textarea');
-    input.className = 'flex-1 bg-transparent border-none outline-none resize-none text-lg leading-relaxed placeholder-slate-300 min-h-[2rem] text-slate-700';
-    input.placeholder = language === 'english' ? 'Write a sentence...' : 'Schreiben Sie einen Satz...';
-    input.value = initialText;
-    input.rows = 1;
-
-    // Special display for German bullets to allow clicking words
-    let displayDiv = null;
-    if (language === 'german') {
-        displayDiv = document.createElement('div');
-        displayDiv.className = 'flex-1 text-lg leading-relaxed text-slate-700 min-h-[2rem] py-1 hidden cursor-default';
-        mainRow.appendChild(displayDiv);
-
-        // Toggle view on focus/blur
-        input.addEventListener('blur', function () {
-            if (this.value.trim()) {
-                updateGermanDisplay(this.value, displayDiv);
-                this.classList.add('hidden');
-                displayDiv.classList.remove('hidden');
-            }
-        });
-
-        displayDiv.addEventListener('click', function () {
-            this.classList.add('hidden');
-            input.classList.remove('hidden');
-            input.focus();
-        });
-
-        if (initialText) {
-            updateGermanDisplay(initialText, displayDiv);
-            input.classList.add('hidden');
-            displayDiv.classList.remove('hidden');
-        }
-    }
-
-    // Auto-resize textarea
-    input.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = this.scrollHeight + 'px';
-    });
-
-    // Handle Enter key to create new bullet
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (this.value.trim()) {
-                addBulletPoint(language, '', true); // Focus the new bullet when user presses Enter
-            }
-        }
-    });
-
-    // Delete button
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity mt-2 text-xl ml-2';
-    deleteBtn.innerHTML = '×';
-    deleteBtn.onclick = (e) => {
-        e.stopPropagation();
-        const allBullets = container.querySelectorAll('.flex.flex-col.gap-2.group');
-        if (allBullets.length > 1) {
-            bulletDiv.remove();
-        } else {
-            input.value = '';
-            if (displayDiv) {
-                displayDiv.innerHTML = '';
-                displayDiv.classList.add('hidden');
-                input.classList.remove('hidden');
-            }
-        }
-    };
-
-    mainRow.appendChild(bullet);
-    mainRow.appendChild(input);
-    mainRow.appendChild(deleteBtn);
-    bulletDiv.appendChild(mainRow);
-
-    return bulletDiv;
-}
-
-function updateGermanDisplay(text, container) {
-    container.innerHTML = '';
-    // Split by words and punctuation, keeping track of them
-    const tokens = text.split(/(\s+|[.,!?;:()])/);
-
-    tokens.forEach(token => {
-        if (token.trim().length > 0 && !/[.,!?;:()]/.test(token)) {
-            const span = document.createElement('span');
-            span.className = 'hover:text-blue-600 hover:bg-blue-50 px-0.5 rounded transition-colors cursor-pointer inline-block';
-            span.textContent = token;
-            span.onclick = (e) => {
-                e.stopPropagation();
-                addWordFromJournal(token);
-            };
-            container.appendChild(span);
-        } else {
-            const textNode = document.createTextNode(token);
-            container.appendChild(textNode);
-        }
-    });
-}
-
-async function addWordFromJournal(germanWord) {
-    if (!confirm(`Add "${germanWord}" to Crew Chants (phrases)?`)) return;
-
-    try {
-        console.log(`Adding word "${germanWord}" to phrases...`);
-        
-        // Fetch English translation first
-        const translationResult = await apiCall('/translate/reverse', {
-            method: 'POST',
-            body: JSON.stringify({ text: germanWord })
-        });
-
-        const englishMeaning = translationResult.data.translated;
-        console.log(`Translation received: "${englishMeaning}"`);
-
-        // Add to phrases - backend will auto-generate examples using Gemini
-        await apiCall('/phrases', {
-            method: 'POST',
-            body: JSON.stringify({
-                english: englishMeaning,
-                german: germanWord
-            })
-        });
-
-    console.log(`Successfully added "${germanWord}" (${englishMeaning}) to Crew Chants!`);
-
-        // Show success
-        const feedback = document.getElementById('feedback-area');
-        feedback.classList.remove('hidden');
-    feedback.querySelector('span').innerHTML = `🎵 Added "<b>${germanWord}</b>" → "<i>${englishMeaning}</i>" to Crew Chants with examples!`;
-
-        // Refresh phrases if on that page
-        if (state.currentView === 'phrases') loadPhrases();
-        if (state.currentView === 'dashboard') {
-            loadDashboard();
-        } else {
-            await updateUserLevel();
-        }
-
-    } catch (error) {
-        console.error(`Error adding word "${germanWord}" from journal:`, error);
-        console.error('Full error details:', error);
-        alert(`Failed to add phrase "${germanWord}": ${error.message}`);
-    }
-}
-
-function addBulletPoint(language, text = '', shouldFocus = true) {
-    const container = language === 'english'
-        ? document.getElementById('english-bullets-container')
-        : document.getElementById('german-bullets-container');
-
-    const bulletInput = createBulletInput(container, language, text);
-    container.appendChild(bulletInput);
-
-    const textarea = bulletInput.querySelector('textarea');
-    
-    // Only focus if explicitly requested (e.g., when user manually adds a bullet)
-    // Don't auto-focus on initial load or navigation to prevent keyboard popup on mobile
-    if (shouldFocus) {
-        textarea.focus();
-    }
-
-    // Trigger auto-resize
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
-}
-
-function initializeBulletPoints() {
-    // Clear existing
-    const enContainer = document.getElementById('english-bullets-container');
-    const deContainer = document.getElementById('german-bullets-container');
-
-    if (enContainer) enContainer.innerHTML = '';
-    if (deContainer) deContainer.innerHTML = '';
-
-    // Add initial bullet points without auto-focus to prevent keyboard popup on mobile
-    addBulletPoint('english', '', false);
-    addBulletPoint('german', '', false);
-}
-
-function getBulletsText(language) {
-    const container = language === 'english'
-        ? document.getElementById('english-bullets-container')
-        : document.getElementById('german-bullets-container');
-
-    if (!container) return [];
-
-    const inputs = container.querySelectorAll('textarea');
-    const bullets = Array.from(inputs)
-        .map(input => input.value.trim())
-        .filter(text => text.length > 0);
-
-    return bullets;
-}
-
-function setBullets(language, bullets) {
-    const container = language === 'english'
-        ? document.getElementById('english-bullets-container')
-        : document.getElementById('german-bullets-container');
-
-    if (!container) return;
-
-    container.innerHTML = '';
-
-    if (bullets && bullets.length > 0) {
-        bullets.forEach(text => addBulletPoint(language, text, false));
-    } else {
-        addBulletPoint(language, '', false);
-    }
-}
-
-// --- JOURNAL ---
-function clearJournal() {
-    state.editingEntryId = null;
-    initializeBulletPoints();
-
-    // Reset save button text
-    const saveBtn = document.querySelector('button[onclick="processEntry()"]');
-    if (saveBtn) saveBtn.innerHTML = '<span>✨</span> Save Entry';
-}
-
-async function translateText() {
-    const englishBullets = getBulletsText('english');
-
-    if (englishBullets.length === 0) {
-        alert('Please write something in English first!');
-        return;
-    }
-
-    const translateBtn = event.target.closest('button');
-    const originalText = translateBtn.innerHTML;
-    translateBtn.innerHTML = '<span>⏳</span> Translating...';
-    translateBtn.disabled = true;
-
-    try {
-        // Join all bullets with newlines for single translation
-        const combinedText = englishBullets.join('\n');
-
-        const result = await apiCall('/translate', {
-            method: 'POST',
-            body: JSON.stringify({
-                text: combinedText,
-                multiSentence: true
-            })
-        });
-
-        // Split the translated text back into bullets
-        const translatedBullets = result.data.translated
-            .split('\n')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
-
-        // Set the translated bullets
-        setBullets('german', translatedBullets);
-    } catch (error) {
-        alert('Translation failed: ' + error.message);
-    } finally {
-        translateBtn.innerHTML = originalText;
-        translateBtn.disabled = false;
-    }
-}
-
-async function processEntry() {
-    const enBullets = getBulletsText('english');
-    const deBullets = getBulletsText('german');
-
-    const enText = enBullets.join('\n');
-    const deText = deBullets.join('\n');
-
-    if (!deText.trim()) {
-        alert('Bitte schreiben Sie etwas auf Deutsch!');
-        return;
-    }
-
-    if (!enText.trim()) {
-        alert('Please write something in English!');
-        return;
-    }
-
-    const saveBtn = event.target.closest('button');
-    const originalText = saveBtn.innerHTML;
-    saveBtn.innerHTML = '<span>⏳</span> Saving...';
-    saveBtn.disabled = true;
-
-    try {
-        const sessionDuration = Math.floor(state.timer / 60);
-        let result;
-
-        if (state.editingEntryId) {
-            // Update existing entry
-            result = await apiCall(`/journal/entry/${state.editingEntryId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    english_text: enText,
-                    german_text: deText
-                })
-            });
-        } else {
-            // Create new entry
-            result = await apiCall('/journal/entry', {
-                method: 'POST',
-                body: JSON.stringify({
-                    english_text: enText,
-                    german_text: deText,
-                    session_duration: sessionDuration
-                })
-            });
-        }
-
-        // Show success feedback
-        showWantedPoster(); // NEW: Trigger One Piece style notification
-
-        // Update journey activity
-        await updateJourneyActivity({ journal_entries: 1 });
-
-        // Clear inputs
-        clearJournal();
-
-        // Reload dashboard if visible, otherwise just update level
-        if (state.currentView === 'dashboard') {
-            await loadDashboard();
-        } else {
-            await updateUserLevel();
-        }
-
-        // Reload journal history
-        await loadJournalHistory();
-    } catch (error) {
-        alert('Failed to save entry: ' + error.message);
-    } finally {
-        saveBtn.innerHTML = originalText;
-        saveBtn.disabled = false;
-    }
-}
-
-// --- JOURNAL HISTORY ---
-async function loadJournalHistory() {
-    try {
-        const sort = document.getElementById('journal-sort').value;
-        const result = await apiCall(`/journal/entries?title=&sort=${sort}&limit=50`);
-        renderJournalHistory(result.data);
-    } catch (error) {
-        console.error('Error loading journal history:', error);
-        document.getElementById('journal-history-list').innerHTML =
-            '<div class="text-center py-10 opacity-50 text-sm text-red-500">Failed to load history</div>';
-    }
-}
-
-function renderJournalHistory(entries) {
-    const container = document.getElementById('journal-history-list');
-    container.innerHTML = '';
-
-    if (entries.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-10 opacity-50">
-                <div class="text-4xl mb-2">📝</div>
-                <div class="text-sm">No entries yet</div>
-            </div>`;
-        return;
-    }
-
-    entries.forEach(entry => {
-        const date = new Date(entry.created_at);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
-        const dateString = date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-
-        // Preview text from first bullet (German preferred, fallback to English)
-        const germanBullets = entry.german_bullets || [];
-        const englishBullets = entry.english_bullets || [];
-        const firstBullet = germanBullets[0] || englishBullets[0] || '';
-        const previewText = firstBullet.substring(0, 50) + (firstBullet.length > 50 ? '...' : '');
-
-        const div = document.createElement('div');
-        div.className = 'p-3 rounded-lg bg-white/60 border border-slate-200 hover:bg-white hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer group';
-        div.onclick = () => viewJournalEntry(entry.id);
-
-        div.innerHTML = `
-            <div class="flex justify-between items-start mb-1.5">
-                <div class="flex-1 min-w-0">
-                    <div class="text-[10px] font-black text-blue-600 tracking-wider mb-0.5">${dayName}</div>
-                    <div class="text-xs font-bold text-slate-700 truncate">${dateString}</div>
-                </div>
-                <div class="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                    <span class="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 font-mono">${entry.word_count} words</span>
-                    <button onclick="deleteJournalEntry(event, ${entry.id})" class="text-slate-300 hover:text-red-500 transition-colors text-sm" title="Delete Entry">🗑️</button>
-                </div>
-            </div>
-            <p class="text-[11px] text-slate-500 italic leading-snug line-clamp-2 group-hover:text-slate-700 transition-colors">
-                "${previewText}"
-            </p>
-        `;
-        container.appendChild(div);
-    });
-}
-
-async function viewJournalEntry(id) {
-    try {
-        // Option to verify if user wants to overwrite current unsaved text? 
-        // For now, we assume viewing history overwrites or we could ask.
-        // Let's just load it.
-        const result = await apiCall(`/journal/entry/${id}`);
-        const entry = result.data;
-
-        // Populate bullet points
-        const enBullets = entry.english_bullets || (entry.english_text ? entry.english_text.split('\n') : []);
-        const deBullets = entry.german_bullets || (entry.german_text ? entry.german_text.split('\n') : []);
-
-        setBullets('english', enBullets);
-        setBullets('german', deBullets);
-
-        // Scroll to top of journal inputs on mobile if needed
-        if (window.innerWidth < 1024) {
-            document.getElementById('english-bullets-container').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Set editing state
-        state.editingEntryId = id;
-        const saveBtn = document.querySelector('button[onclick="processEntry()"]');
-        if (saveBtn) saveBtn.innerHTML = '<span>🔄</span> Update Entry';
-
-    } catch (error) {
-        console.error('Error loading entry:', error);
-        alert('Failed to load entry');
-    }
-}
-
-async function deleteJournalEntry(event, id) {
-    event.stopPropagation();
-
-    if (!confirm('Are you sure you want to delete this journal entry?')) return;
-
-    try {
-        await apiCall(`/journal/entry/${id}`, { method: 'DELETE' });
-
-        // If we deleted the currently edited entry, clear the form
-        if (state.editingEntryId === id) {
-            clearJournal();
-        }
-
-        await loadJournalHistory();
-
-        // Refresh dashboard stats if active
-        if (state.currentView === 'dashboard') {
-            await loadDashboard();
-        }
-    } catch (error) {
-        console.error('Error deleting entry:', error);
-        alert('Failed to delete entry');
-    }
-}
-
 // --- TEXT-TO-SPEECH FOR GERMAN WORDS/PHRASES ---
 function speakGermanWord(event, word, wordId) {
     event.stopPropagation();
@@ -1371,8 +901,9 @@ async function addPhrase() {
     const german = germanInput.value.trim();
     const category_id = categorySelect.value;
 
-    if (!english) {
-        alert('Please enter an English phrase!');
+    // Check if at least one field is filled
+    if (!english && !german) {
+        alert('Please enter either an English or German phrase!');
         return;
     }
 
@@ -1385,7 +916,12 @@ async function addPhrase() {
     }
 
     try {
-        const payload = { english };
+        const payload = {};
+        
+        // Add whichever fields are filled
+        if (english) {
+            payload.english = english;
+        }
         if (german) {
             payload.german = german;
         }
@@ -1406,10 +942,20 @@ async function addPhrase() {
         // Reload phrases
         await loadPhrases();
 
-        // Show success feedback
+        // Show success feedback with appropriate message
         const successMsg = document.createElement('div');
         successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in';
-        successMsg.innerHTML = '✓ Phrase added successfully with auto-translation!';
+        
+        let translationDirection = '';
+        if (english && !german) {
+            translationDirection = 'English → German';
+        } else if (german && !english) {
+            translationDirection = 'German → English';
+        } else {
+            translationDirection = 'bilingual';
+        }
+        
+        successMsg.innerHTML = `✓ Phrase added successfully with ${translationDirection} auto-translation!`;
         document.body.appendChild(successMsg);
 
         setTimeout(() => successMsg.remove(), 3000);
@@ -2106,10 +1652,9 @@ function navigateToPrevious() {
 
 function getViewDisplayName(viewId) {
     const displayNames = {
-    'dashboard': 'Captain’s Deck',
-    'journal': 'Logbook',
-    'phrases': 'Crew Chants',
-    'motivation': 'Ship Notes'
+        'dashboard': 'Captain\'s Deck',
+        'phrases': 'Crew Chants',
+        'motivation': 'Ship Notes'
     };
     return displayNames[viewId] || viewId;
 }

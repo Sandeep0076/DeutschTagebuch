@@ -19,26 +19,8 @@ async function migrateData() {
     console.log('╚════════════════════════════════════════════╝\n');
 
     try {
-        // Migrate journal entries
-        console.log('📝 Migrating journal entries...');
-        const journalEntries = sqliteDb.prepare('SELECT * FROM journal_entries').all();
-
-        if (journalEntries.length > 0) {
-            const { data, error } = await supabase
-                .from('journal_entries')
-                .insert(journalEntries.map(entry => ({
-                    english_text: entry.english_text,
-                    german_text: entry.german_text,
-                    created_at: entry.created_at,
-                    word_count: entry.word_count,
-                    session_duration: entry.session_duration
-                })));
-
-            if (error) throw error;
-            console.log(`✓ Migrated ${journalEntries.length} journal entries`);
-        } else {
-            console.log('  No journal entries to migrate');
-        }
+        // Skip journal entries (feature removed)
+        console.log('📝 Skipping journal entries (feature removed)');
 
         // Migrate vocabulary
         console.log('\n📚 Migrating vocabulary...');
@@ -126,10 +108,6 @@ async function migrateData() {
         // Verify migration
         console.log('\n🔍 Verifying migration...');
 
-        const { count: journalCount } = await supabase
-            .from('journal_entries')
-            .select('*', { count: 'exact', head: true });
-
         const { count: vocabCount } = await supabase
             .from('vocabulary')
             .select('*', { count: 'exact', head: true });
@@ -143,7 +121,6 @@ async function migrateData() {
             .select('*', { count: 'exact', head: true });
 
         console.log('\n📈 Migration Summary:');
-        console.log(`  Journal Entries: ${journalCount || 0}`);
         console.log(`  Vocabulary Words: ${vocabCount || 0}`);
         console.log(`  Custom Phrases: ${phrasesCount || 0}`);
         console.log(`  Progress Stats: ${statsCount || 0}`);

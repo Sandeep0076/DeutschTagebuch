@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS daily_activities (
   id BIGSERIAL PRIMARY KEY,
   activity_date DATE NOT NULL UNIQUE,
   minutes_practiced INTEGER DEFAULT 0,
-  journal_entries_count INTEGER DEFAULT 0,
   vocabulary_added_count INTEGER DEFAULT 0,
   day_completed BOOLEAN DEFAULT FALSE,
   journey_day_number INTEGER, -- Which day of the 30-day journey (1-30)
@@ -83,8 +82,7 @@ VALUES
   ('first_journey_complete', 'First Voyage', 'Completed your first 30-day journey!', '🏆', 'special'),
   ('speed_runner', 'Speed Runner', 'Completed 7 days in 7 consecutive calendar days', '⚡', 'special'),
   ('dedicated_pirate', 'Dedicated Pirate', 'Practiced 50+ minutes in a single day', '🔥', 'special'),
-  ('word_hoarder', 'Word Hoarder', 'Added 20+ vocabulary words in one day', '📚', 'special'),
-  ('story_teller', 'Story Teller', 'Wrote a journal entry with 100+ words', '✍️', 'special')
+  ('word_hoarder', 'Word Hoarder', 'Added 20+ vocabulary words in one day', '📚', 'special')
 ON CONFLICT (achievement_key) DO NOTHING;
 
 -- Initialize journey progress for the default user

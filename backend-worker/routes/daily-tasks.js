@@ -31,10 +31,27 @@ router.get('/', async (c) => {
     // Merge tasks with progress
     const tasksWithProgress = tasks.map(task => {
       const taskProgress = progress?.find(p => p.task_id === task.id)
+
+      // Override: rename "Read a Book" task to "Daily Conversation" and set 30-minute duration
+      let name = task.name
+      let durationMinutes = task.duration_minutes
+      if (typeof task.name === 'string') {
+        const lower = task.name.toLowerCase()
+        if (lower.includes('read') && lower.includes('book')) {
+          console.log('[daily-tasks] Renaming task to Daily Conversation and setting duration to 30 minutes', {
+            taskId: task.id,
+            originalName: task.name,
+            originalDuration: task.duration_minutes
+          })
+          name = 'Daily Conversation'
+          durationMinutes = 30
+        }
+      }
+
       return {
         id: task.id,
-        name: task.name,
-        duration_minutes: task.duration_minutes,
+        name,
+        duration_minutes: durationMinutes,
         display_order: task.display_order,
         icon: task.icon,
         completed: !!taskProgress?.completed_at,
@@ -77,7 +94,7 @@ router.post('/:id/start', async (c) => {
     const today = new Date().toISOString().split('T')[0]
     const now = new Date().toISOString()
 
-    // Check if task exists
+  // Check if task exists
     const { data: task, error: taskError } = await supabase
       .from('daily_tasks')
       .select('*')
@@ -132,12 +149,25 @@ router.post('/:id/start', async (c) => {
       if (insertError) throw insertError
     }
 
+    // Override duration/name for "Read a Book" when starting (keep DB unchanged)
+    let effectiveDuration = task.duration_minutes
+    if (typeof task.name === 'string') {
+      const lower = task.name.toLowerCase()
+      if (lower.includes('read') && lower.includes('book')) {
+        console.log('[daily-tasks] Start override: Daily Conversation 30-minute timer', {
+          taskId,
+          originalDuration: task.duration_minutes
+        })
+        effectiveDuration = 30
+      }
+    }
+
     return c.json({
       success: true,
       data: {
         task_id: taskId,
         started_at: now,
-        duration_minutes: task.duration_minutes
+        duration_minutes: effectiveDuration
       }
     })
   } catch (error) {

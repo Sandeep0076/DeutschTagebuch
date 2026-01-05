@@ -6,10 +6,10 @@ const router = new Hono()
 /**
  * Helper function: Check if day completion criteria is met
  * Primary: 10+ minutes of practice time
- * Alternative: 1+ journal entry OR 5+ vocabulary words
+ * Alternative: 5+ vocabulary words
  */
 function isDayCompleted(activities) {
-  const { minutes_practiced, journal_entries_count, vocabulary_added_count } = activities;
+  const { minutes_practiced, vocabulary_added_count } = activities;
   
   // Primary criterion: 10+ minutes of practice time
   if (minutes_practiced >= 10) {
@@ -17,7 +17,7 @@ function isDayCompleted(activities) {
   }
   
   // Alternative: Significant activity without timer
-  if (journal_entries_count >= 1 || vocabulary_added_count >= 5) {
+  if (vocabulary_added_count >= 5) {
     return true;
   }
   
@@ -123,7 +123,6 @@ router.get('/status', async (c) => {
         journey_completed_count: journeyProgress.journey_completed_count,
         today_activity: todayActivity || {
           minutes_practiced: 0,
-          journal_entries_count: 0,
           vocabulary_added_count: 0,
           day_completed: false
         }
@@ -155,7 +154,7 @@ router.get('/status', async (c) => {
 /**
  * POST /api/journey/complete-day
  * Marks current day as complete and advances journey
- * Request body: { date, minutes_practiced, journal_entries, vocabulary_added }
+ * Request body: { date, minutes_practiced, vocabulary_added }
  */
 router.post('/complete-day', async (c) => {
   try {
@@ -164,7 +163,6 @@ router.post('/complete-day', async (c) => {
     
     const activityDate = body.date || new Date().toISOString().split('T')[0];
     const minutesPracticed = body.minutes_practiced || 0;
-    const journalEntries = body.journal_entries || 0;
     const vocabularyAdded = body.vocabulary_added || 0;
 
     // Ensure journey progress exists
@@ -188,7 +186,6 @@ router.post('/complete-day', async (c) => {
     // Check if completion criteria is met
     const activities = {
       minutes_practiced: minutesPracticed,
-      journal_entries_count: journalEntries,
       vocabulary_added_count: vocabularyAdded
     };
     
@@ -200,7 +197,6 @@ router.post('/complete-day', async (c) => {
       .upsert({
         activity_date: activityDate,
         minutes_practiced: minutesPracticed,
-        journal_entries_count: journalEntries,
         vocabulary_added_count: vocabularyAdded,
         day_completed: dayComplete,
         journey_day_number: dayComplete ? currentDay : null,
@@ -216,7 +212,7 @@ router.post('/complete-day', async (c) => {
         success: true,
         day_completed: false,
         journey_day: currentDay,
-        message: 'Activity recorded, but day not yet completed. Complete 10+ minutes or 1+ journal entry.',
+        message: 'Activity recorded, but day not yet completed. Complete 10+ minutes or 5+ vocabulary words.',
         milestone_reached: false,
         achievements_unlocked: []
       });
@@ -494,8 +490,8 @@ router.post('/reset', async (c) => {
 
 /**
  * POST /api/journey/update-activity
- * Updates today's activity metrics (called by timer/journal/vocab systems)
- * Request body: { minutes_practiced?, journal_entries?, vocabulary_added? }
+ * Updates today's activity metrics (called by timer/vocab systems)
+ * Request body: { minutes_practiced?, vocabulary_added? }
  */
 router.post('/update-activity', async (c) => {
   try {
@@ -512,13 +508,11 @@ router.post('/update-activity', async (c) => {
       .single();
 
     const minutesPracticed = (currentActivity?.minutes_practiced || 0) + (body.minutes_practiced || 0);
-    const journalEntries = (currentActivity?.journal_entries_count || 0) + (body.journal_entries || 0);
     const vocabularyAdded = (currentActivity?.vocabulary_added_count || 0) + (body.vocabulary_added || 0);
 
     // Check if day should be auto-completed
     const activities = {
       minutes_practiced: minutesPracticed,
-      journal_entries_count: journalEntries,
       vocabulary_added_count: vocabularyAdded
     };
     
@@ -542,7 +536,6 @@ router.post('/update-activity', async (c) => {
       .upsert({
         activity_date: today,
         minutes_practiced: minutesPracticed,
-        journal_entries_count: journalEntries,
         vocabulary_added_count: vocabularyAdded,
         day_completed: dayComplete,
         journey_day_number: journeyDayNumber,
@@ -558,7 +551,6 @@ router.post('/update-activity', async (c) => {
       day_completed: dayComplete,
       activities: {
         minutes_practiced: minutesPracticed,
-        journal_entries_count: journalEntries,
         vocabulary_added_count: vocabularyAdded
       }
     });

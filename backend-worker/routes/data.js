@@ -9,13 +9,6 @@ const router = new Hono()
 router.get('/export', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
-    const { data: journalEntries, error: journalError } = await supabase
-      .from('journal_entries')
-      .select('*')
-      .order('created_at', { ascending: true });
-
-    if (journalError) throw journalError;
-
     const { data: vocabulary, error: vocabError } = await supabase
       .from('vocabulary')
       .select('*')
@@ -49,14 +42,12 @@ router.get('/export', async (c) => {
       version: '1.0',
       exportDate: new Date().toISOString(),
       data: {
-        journalEntries: journalEntries || [],
         vocabulary: vocabulary || [],
         customPhrases: customPhrases || [],
         settings: settingsData,
         progressStats: progressStats || []
       },
       metadata: {
-        totalEntries: journalEntries?.length || 0,
         totalVocabulary: vocabulary?.length || 0,
         totalCustomPhrases: customPhrases?.length || 0,
         totalProgressDays: progressStats?.length || 0
@@ -86,28 +77,12 @@ router.post('/import', async (c) => {
     }
 
     const importMode = mode || 'merge';
-    const stats = { journalEntries: 0, vocabulary: 0, customPhrases: 0, progressStats: 0, errors: [] };
+    const stats = { vocabulary: 0, customPhrases: 0, progressStats: 0, errors: [] };
 
     if (importMode === 'replace') {
-      await supabase.from('journal_entries').delete().neq('id', 0);
       await supabase.from('vocabulary').delete().neq('id', 0);
       await supabase.from('custom_phrases').delete().neq('id', 0);
       await supabase.from('progress_stats').delete().neq('id', 0);
-    }
-
-    if (data.data.journalEntries && Array.isArray(data.data.journalEntries)) {
-      for (const entry of data.data.journalEntries) {
-        try {
-          const { error } = await supabase.from('journal_entries').insert({
-            english_text: entry.english_text,
-            german_text: entry.german_text,
-            created_at: entry.created_at,
-            word_count: entry.word_count || 0,
-            session_duration: entry.session_duration || 0
-          });
-          if (!error) stats.journalEntries++;
-        } catch (err) { stats.errors.push(`Journal entry error: ${err.message}`); }
-      }
     }
 
     if (data.data.vocabulary && Array.isArray(data.data.vocabulary)) {
@@ -169,7 +144,6 @@ router.post('/import', async (c) => {
       message: 'Data imported successfully',
       stats: {
         imported: {
-          journalEntries: stats.journalEntries,
           vocabulary: stats.vocabulary,
           customPhrases: stats.customPhrases,
           progressStats: stats.progressStats
@@ -194,7 +168,6 @@ router.delete('/clear', async (c) => {
       return c.json({ success: false, error: 'Confirmation required. Send { "confirm": "DELETE_ALL_DATA" }' }, 400);
     }
 
-    await supabase.from('journal_entries').delete().neq('id', 0);
     await supabase.from('vocabulary').delete().neq('id', 0);
     await supabase.from('custom_phrases').delete().neq('id', 0);
     await supabase.from('progress_stats').delete().neq('id', 0);

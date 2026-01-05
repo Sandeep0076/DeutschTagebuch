@@ -16,22 +16,6 @@ router.get('/stats', async (c) => {
 
     if (vocabError) throw vocabError;
 
-    const { count: entriesCount, error: entriesError } = await supabase
-      .from('journal_entries')
-      .select('*', { count: 'exact', head: true });
-
-    if (entriesError) throw entriesError;
-
-    const { data: totalWordsData, error: wordsError } = await supabase.rpc('sum_word_count');
-
-    let totalWords = 0;
-    if (wordsError) {
-      const { data: entries } = await supabase.from('journal_entries').select('word_count');
-      totalWords = entries ? entries.reduce((sum, e) => sum + (e.word_count || 0), 0) : 0;
-    } else {
-      totalWords = totalWordsData || 0;
-    }
-
     const { data: totalTimeData, error: timeError } = await supabase.rpc('sum_minutes_practiced');
 
     let totalTime = 0;
@@ -52,13 +36,6 @@ router.get('/stats', async (c) => {
 
     if (weekWordsError) throw weekWordsError;
 
-    const { count: thisWeekEntries, error: weekEntriesError } = await supabase
-      .from('journal_entries')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', sevenDaysAgo.toISOString());
-
-    if (weekEntriesError) throw weekEntriesError;
-
     return c.json({
       success: true,
       data: {
@@ -66,11 +43,6 @@ router.get('/stats', async (c) => {
           total: vocabCount || 0,
           thisWeek: thisWeekWords || 0
         },
-        entries: {
-          total: entriesCount || 0,
-          thisWeek: thisWeekEntries || 0
-        },
-        words: { total: totalWords },
         time: { total: totalTime }
       }
     });
@@ -90,21 +62,23 @@ router.get('/stats', async (c) => {
 router.get('/streak', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
-    const { data: entries, error } = await supabase
-      .from('journal_entries')
-      .select('created_at')
-      .order('created_at', { ascending: false });
+    // Streak calculation now based on daily_activities table instead of journal entries
+    const { data: activities, error } = await supabase
+      .from('daily_activities')
+      .select('activity_date, day_completed')
+      .eq('day_completed', true)
+      .order('activity_date', { ascending: false });
 
     if (error) throw error;
 
-    if (!entries || entries.length === 0) {
+    if (!activities || activities.length === 0) {
       return c.json({
         success: true,
         data: { current: 0, longest: 0, lastEntry: null }
       });
     }
 
-    const dates = [...new Set(entries.map(e => e.created_at.split('T')[0]))].sort().reverse();
+    const dates = [...new Set(activities.map(a => a.activity_date))].sort().reverse();
 
     let currentStreak = 0;
     let longestStreak = 0;
@@ -272,12 +246,6 @@ router.get('/chart-data', async (c) => {
 router.get('/active-days', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
-    const { data: journalDates, error: journalError } = await supabase
-      .from('journal_entries')
-      .select('created_at');
-
-    if (journalError) throw journalError;
-
     const { data: vocabDates, error: vocabError } = await supabase
       .from('vocabulary')
       .select('first_seen');
@@ -291,7 +259,6 @@ router.get('/active-days', async (c) => {
     if (progressError) throw progressError;
 
     const allDates = new Set();
-    if (journalDates) journalDates.forEach(e => allDates.add(e.created_at.split('T')[0]));
     if (vocabDates) vocabDates.forEach(v => allDates.add(v.first_seen.split('T')[0]));
     if (progressDates) progressDates.forEach(p => allDates.add(p.date));
 

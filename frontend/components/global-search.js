@@ -1,6 +1,6 @@
 /**
  * Global Search Component
- * Provides unified search across vocabulary, journal entries, and phrases
+ * Provides unified search across vocabulary and phrases
  * Accessible from every page via keyboard shortcut (Cmd+K / Ctrl+K)
  */
 
@@ -61,9 +61,9 @@ class GlobalSearch {
           <!-- Search Input -->
           <div class="relative">
             <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-xl" style="color: var(--ocean-mid);">🧭</span>
-            <input type="text" 
-                   id="global-search-input" 
-                   placeholder="Search vocabulary, journal, phrases... (Cmd+K)"
+            <input type="text"
+                   id="global-search-input"
+                   placeholder="Search vocabulary, phrases... (Cmd+K)"
                    class="w-full pl-12 pr-12 py-4 rounded-xl font-bold transition-all focus:outline-none focus:ring-4"
                    style="background: white; border: 3px solid var(--bronze-dark); color: var(--ship-wood); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); --tw-ring-color: rgba(255, 215, 0, 0.3);"
                    autocomplete="off">
@@ -86,7 +86,7 @@ class GlobalSearch {
           <div id="search-empty-state" class="flex flex-col items-center justify-center py-16 text-slate-400">
             <div class="text-6xl mb-4 opacity-50">🗺️</div>
             <h3 class="text-xl font-bold mb-2">Start searching...</h3>
-            <p class="text-sm">Search across vocabulary, journal entries, and phrases</p>
+            <p class="text-sm">Search across vocabulary and phrases</p>
           </div>
         </div>
       </div>
@@ -183,7 +183,7 @@ class GlobalSearch {
       <div id="search-empty-state" class="flex flex-col items-center justify-center py-16 text-slate-400">
         <div class="text-6xl mb-4 opacity-50">🗺️</div>
         <h3 class="text-xl font-bold mb-2">Start searching...</h3>
-        <p class="text-sm">Search across vocabulary, journal entries, and phrases</p>
+        <p class="text-sm">Search across vocabulary and phrases</p>
       </div>
     `;
   }
@@ -233,8 +233,8 @@ class GlobalSearch {
    * Render search results
    */
   renderResults(data, query) {
-    const { vocabulary, journal_sentences, phrases, counts } = data;
-    const totalResults = counts.vocabulary + counts.journal_sentences + counts.phrases;
+    const { vocabulary, phrases, counts } = data;
+    const totalResults = counts.vocabulary + counts.phrases;
 
     if (totalResults === 0) {
       this.resultsContainer.innerHTML = `
@@ -253,9 +253,7 @@ class GlobalSearch {
           <div>
             <h3 class="text-base font-bold text-slate-800">Search Results for "${query}"</h3>
             <p class="text-sm text-slate-600 mt-1">
-              Found ${counts.vocabulary} word${counts.vocabulary !== 1 ? 's' : ''},
-              ${counts.journal_sentences} journal sentence${counts.journal_sentences !== 1 ? 's' : ''},
-              and ${counts.phrases} phrase${counts.phrases !== 1 ? 's' : ''}
+              Found ${counts.vocabulary} word${counts.vocabulary !== 1 ? 's' : ''} and ${counts.phrases} phrase${counts.phrases !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
@@ -272,21 +270,6 @@ class GlobalSearch {
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             ${vocabulary.map(word => this.renderVocabularyCard(word)).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    // Journal Results
-    if (journal_sentences.length > 0) {
-      html += `
-        <div class="mb-6">
-          <h4 class="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
-            <span class="text-2xl">✍️</span>
-            Journal Sentences (${counts.journal_sentences})
-          </h4>
-          <div class="space-y-3">
-            ${journal_sentences.map(sentence => this.renderJournalCard(sentence)).join('')}
           </div>
         </div>
       `;
@@ -322,38 +305,6 @@ class GlobalSearch {
         </div>
         <div class="text-sm text-slate-600 italic">${word.meaning || 'No meaning'}</div>
         ${word.frequency > 1 ? `<div class="text-xs text-blue-600 mt-2 font-mono font-bold">Used ${word.frequency}x</div>` : ''}
-      </div>
-    `;
-  }
-
-  /**
-   * Render journal card
-   */
-  renderJournalCard(sentence) {
-    const date = new Date(sentence.date).toLocaleDateString('en-US', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-
-    const languageLabel = sentence.language === 'german' ?
-      '<span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-bold">🇩🇪 German</span>' :
-      '<span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">🇬🇧 English</span>';
-
-    return `
-      <div class="glass-card p-4 rounded-xl cursor-pointer hover:bg-white/90 transition-all"
-           onclick="window.globalSearch.navigateToJournal(${sentence.entry_id})">
-        <div class="flex justify-between items-start mb-2">
-          <div class="text-xs text-slate-500 font-medium">${date}</div>
-          ${languageLabel}
-        </div>
-        <p class="text-slate-700 leading-relaxed italic">
-          "${sentence.sentence}"
-        </p>
-        <div class="mt-2 text-xs text-blue-500 font-medium opacity-70">
-          Click to view full journal entry →
-        </div>
       </div>
     `;
   }

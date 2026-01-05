@@ -165,37 +165,40 @@ router.delete('/categories/:id', async (c) => {
 /**
  * POST /api/phrases
  * Add a custom phrase with auto-translation and example generation
+ * Supports both English->German and German->English translation
  */
 router.post('/', async (c) => {
   try {
     const supabase = getSupabaseClient(c.env);
     const { english, german, category_id } = await c.req.json();
 
-    if (!english) {
+    // At least one language must be provided
+    if (!english && !german) {
       return c.json({
         success: false,
-        error: 'English phrase is required'
+        error: 'Either English or German phrase is required'
       }, 400);
     }
 
-    const cleanEnglish = english.trim();
-
-    if (cleanEnglish.length === 0) {
-      return c.json({
-        success: false,
-        error: 'English phrase cannot be empty'
-      }, 400);
-    }
-
-    // Auto-translate to German if not provided
+    let cleanEnglish = english ? english.trim() : '';
     let cleanGerman = german ? german.trim() : '';
-    let meaning = cleanEnglish;
+    let meaning = '';
     let exampleEnglish = '';
     let exampleGerman = '';
 
-    if (!cleanGerman) {
+    // Determine translation direction and perform translation
+    if (cleanEnglish && !cleanGerman) {
+      // English provided, translate to German
+      if (cleanEnglish.length === 0) {
+        return c.json({
+          success: false,
+          error: 'English phrase cannot be empty'
+        }, 400);
+      }
+
       try {
         cleanGerman = await translateToGerman(cleanEnglish, c.env);
+        meaning = cleanEnglish;
       } catch (error) {
         console.error('Translation error:', error);
         return c.json({
@@ -203,6 +206,28 @@ router.post('/', async (c) => {
           error: 'Failed to translate phrase. Please provide German translation manually.'
         }, 500);
       }
+    } else if (cleanGerman && !cleanEnglish) {
+      // German provided, translate to English
+      if (cleanGerman.length === 0) {
+        return c.json({
+          success: false,
+          error: 'German phrase cannot be empty'
+        }, 400);
+      }
+
+      try {
+        cleanEnglish = await translateToEnglish(cleanGerman, c.env);
+        meaning = cleanEnglish;
+      } catch (error) {
+        console.error('Translation error:', error);
+        return c.json({
+          success: false,
+          error: 'Failed to translate phrase. Please provide English translation manually.'
+        }, 500);
+      }
+    } else {
+      // Both provided
+      meaning = cleanEnglish;
     }
 
     // Generate contextual example sentences using Gemini

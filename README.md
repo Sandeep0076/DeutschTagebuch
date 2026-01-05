@@ -1,21 +1,14 @@
 # DeutschTagebuch - Daily German Learning App
 
-A full-stack web application for daily German language practice with AI-powered translation, vocabulary tracking, and progress monitoring. Features a unique One Piece anime-themed interface for an engaging learning experience.
+A full-stack web application for daily German language practice with vocabulary tracking, custom phrases, and progress monitoring. Features a unique One Piece anime-themed interface with a gamified 30-day journey map for an engaging learning experience.
 
 ## Features
 
-✨ **Daily Journal Writing (Zoro's Training)**
-- Write in English and get automatic German translations
-- Bullet-point based writing system
-- Click German words to add them to vocabulary
-- Track your daily writing practice
-- Review and edit past entries with search functionality
-
 📚 **Vocabulary Bank (Nami's Maps)**
-- Automatic vocabulary extraction from your German writing
+- Add and manage German vocabulary words
 - Organize words into custom categories/folders
 - Track word frequency and learning dates
-- Search across vocabulary and journal entries
+- Search across vocabulary
 - Click to reveal German meanings
 - Statistics on learning progress
 
@@ -59,7 +52,7 @@ The 30-Day Journey Map transforms your German learning into an epic adventure! T
 - **Visual Progress Tracking**: See your 30-day journey at a glance with an interactive map
 - **Themed Landmarks**: Unlock special landmarks at milestone days (Grammar Fort, Vocab Island, Quiz Bridge, Treasure Island)
 - **Achievement System**: Earn badges and achievements for reaching milestones and completing challenges
-- **Real-time Updates**: Your map updates automatically as you complete journal entries, add vocabulary, and practice
+- **Real-time Updates**: Your map updates automatically as you add vocabulary and complete practice sessions
 - **Gamification**: Stay motivated with progress bars, celebrations, and visual rewards
 
 ### Quick Setup
@@ -248,27 +241,19 @@ For detailed troubleshooting and advanced deployment options, see [`QUICKSTART.m
 1. Ensure your `.env` file is configured with Supabase and Gemini credentials
 2. The app will connect to your Supabase database
 3. Default settings are configured (60 min daily goal)
-4. Start writing in Zoro's Training (Daily Journal) section!
+4. Start adding vocabulary and learning phrases!
 
 ### Daily Workflow
 
-1. **Write Your Journal Entry (Zoro's Training):**
-   - Navigate to "Zoro's Training" section
-   - Write sentences in English using bullet points (press Enter for new bullet)
-   - Click "Translate" to get AI-powered German translation
-   - Edit the German version if needed
-   - Click German words to add them directly to vocabulary
-   - Click "Gum Gum no" to save entry and trigger wanted poster animation
-
-2. **Review Vocabulary (Nami's Maps):**
-   - Visit "Nami's Navigation Room" to see all learned words
-   - Words are automatically extracted from your German writing
+1. **Manage Vocabulary (Nami's Maps):**
+   - Visit "Nami's Navigation Room" to see all your words
+   - Add new German words and their meanings
    - Organize words into custom folders/categories
    - Click words to reveal German meanings
-   - Search across vocabulary and journal entries
+   - Search across vocabulary
    - Track learning statistics
 
-3. **Practice Phrases (Brook's Songs):**
+2. **Practice Phrases (Brook's Songs):**
    - Use "Brook's Songs" section for useful expressions
    - Click cards to reveal German translations
    - One Piece themed presentation
@@ -309,13 +294,6 @@ DELETE http://localhost:8080/api/data/clear
 
 ## API Endpoints
 
-### Journal
-- `POST /api/journal/entry` - Create journal entry
-- `GET /api/journal/entries?title=&sort=newest&limit=50` - Get all entries (with filters)
-- `GET /api/journal/entry/:id` - Get specific entry
-- `PUT /api/journal/entry/:id` - Update entry
-- `DELETE /api/journal/entry/:id` - Delete entry
-
 ### Vocabulary
 - `GET /api/vocabulary?sort=newest` - Get all vocabulary
 - `GET /api/vocabulary/stats` - Get statistics
@@ -354,7 +332,7 @@ DELETE http://localhost:8080/api/data/clear
   ```
 
 ### Search
-- `GET /api/search?q=term` - Unified search across vocabulary and journal entries
+- `GET /api/search?q=term` - Unified search across vocabulary and phrases
 
 ### Notes
 - `GET /api/notes?sort=newest` - Get all notes
@@ -379,15 +357,20 @@ DELETE http://localhost:8080/api/data/clear
 
 The Supabase PostgreSQL database contains:
 
-- **journal_entries** - Your daily writing entries with bullet points
-- **vocabulary** - Extracted German words with frequency and categories
+- **vocabulary** - German words with frequency and categories
 - **vocabulary_categories** - Custom folders for organizing words
-- **phrases** - Built-in and custom phrases
+- **custom_phrases** - Built-in and custom phrases
 - **notes** - Personal notes and tips
 - **user_settings** - App preferences
 - **progress_stats** - Daily learning statistics
+- **daily_tasks** - Daily training quest definitions
+- **daily_task_progress** - Progress tracking for daily quests
+- **journey_progress** - 30-day journey map progress
+- **daily_activities** - Daily learning activities
+- **achievements** - Unlockable achievements
+- **journey_landmarks** - Journey map landmarks
 
-See `backend/supabase-schema.sql` for complete schema details.
+See `backend-worker/supabase-schema.sql` and `backend-worker/journey-schema.sql` for complete schema details.
 
 ## Configuration
 
@@ -473,10 +456,6 @@ The app uses Google Gemini AI (free tier):
 - Ensure server is running on correct port
 - Verify all static assets are present in `assets/` folder
 
-**Vocabulary not extracting:**
-- Ensure German text is properly formatted
-- Check that journal entry was saved successfully
-- Verify vocabulary extraction service is working in server logs
 
 ## Development
 
@@ -499,7 +478,7 @@ DeutschTagebuch/
 │   ├── supabase.js               # Supabase client
 │   ├── supabase-schema.sql       # Database schema
 │   ├── routes/                   # API route handlers
-│   │   ├── journal.js
+│   │   ├── daily-tasks.js
 │   │   ├── vocabulary.js
 │   │   ├── phrases.js
 │   │   ├── progress.js
@@ -507,6 +486,7 @@ DeutschTagebuch/
 │   │   ├── settings.js
 │   │   ├── search.js
 │   │   ├── notes.js
+│   │   ├── journey.js
 │   │   └── data.js
 │   └── services/                 # Business logic
 │       ├── gemini-translation.js

@@ -66,12 +66,13 @@ export async function translateToEnglish(text, env = null) {
 
 /**
  * Generate example sentences for a phrase in both English and German
- * @param {string} phrase - The English phrase
- * @param {string} germanTranslation - The German translation of the phrase
+ * Works bidirectionally - can start from either English or German phrase
+ * @param {string} englishPhrase - The English phrase
+ * @param {string} germanPhrase - The German phrase
  * @param {object} env - Environment variables
  * @returns {Promise<{exampleEnglish: string, exampleGerman: string}>}
  */
-export async function generateExampleSentences(phrase, germanTranslation, env = null) {
+export async function generateExampleSentences(englishPhrase, germanPhrase, env = null) {
     const apiKey = env?.GEMINI_API_KEY || globalThis.GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : undefined);
 
     if (!apiKey) {
@@ -81,16 +82,21 @@ export async function generateExampleSentences(phrase, germanTranslation, env = 
     const payload = {
         contents: [{
             parts: [{
-                text: `Create a natural example sentence using the phrase "${phrase}".
-                
-Requirements:
-- The sentence must use the phrase "${phrase}" naturally in context
-- Make it a complete, realistic sentence
-- Keep it simple and conversational
-- Return ONLY the example sentence, nothing else
-- Do not include quotes or explanations
+                text: `Create natural example sentences for this phrase pair:
+English: "${englishPhrase}"
+German: "${germanPhrase}"
 
-Example sentence:`
+Requirements:
+- Create ONE example sentence in English that uses "${englishPhrase}" naturally in context
+- Create ONE example sentence in German that uses "${germanPhrase}" naturally in context
+- Both sentences should convey similar meaning but don't need to be direct translations
+- Make them complete, realistic, and conversational
+- Keep them simple and easy to understand
+- Return ONLY the two example sentences in this exact format:
+ENGLISH: [your English example]
+GERMAN: [your German example]
+
+Do not include any other text, quotes, or explanations.`
             }]
         }]
     };
@@ -114,10 +120,25 @@ Example sentence:`
         const data = await response.json();
         
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
-            const exampleEnglish = data.candidates[0].content.parts[0].text.trim();
+            const responseText = data.candidates[0].content.parts[0].text.trim();
             
-            // Now translate the English example to German
-            const exampleGerman = await translateWithGemini(exampleEnglish, env);
+            // Parse the response to extract English and German examples
+            const englishMatch = responseText.match(/ENGLISH:\s*(.+?)(?=\nGERMAN:|$)/s);
+            const germanMatch = responseText.match(/GERMAN:\s*(.+?)$/s);
+            
+            let exampleEnglish = englishMatch ? englishMatch[1].trim() : '';
+            let exampleGerman = germanMatch ? germanMatch[1].trim() : '';
+            
+            // Remove any quotes that might be added
+            exampleEnglish = exampleEnglish.replace(/^["']|["']$/g, '');
+            exampleGerman = exampleGerman.replace(/^["']|["']$/g, '');
+            
+            // Fallback if parsing failed
+            if (!exampleEnglish || !exampleGerman) {
+                console.warn('Failed to parse example sentences, using fallback');
+                exampleEnglish = `${englishPhrase}, I didn't expect to see you here!`;
+                exampleGerman = `${germanPhrase}, ich habe nicht erwartet, dich hier zu sehen!`;
+            }
             
             return {
                 exampleEnglish,
@@ -130,8 +151,8 @@ Example sentence:`
         console.error('Error generating example sentences:', error);
         // Fallback to simple examples
         return {
-            exampleEnglish: `${phrase}, I didn't expect to see you here!`,
-            exampleGerman: `${germanTranslation}, ich habe nicht erwartet, dich hier zu sehen!`
+            exampleEnglish: `${englishPhrase}, I didn't expect to see you here!`,
+            exampleGerman: `${germanPhrase}, ich habe nicht erwartet, dich hier zu sehen!`
         };
     }
 }

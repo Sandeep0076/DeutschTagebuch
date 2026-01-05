@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import journal from './routes/journal.js'
 import vocabulary from './routes/vocabulary.js'
 import phrases from './routes/phrases.js'
 import progress from './routes/progress.js'
@@ -29,7 +28,6 @@ app.get('/debug/env', c => {
     })
 })
 
-app.route('/journal', journal)
 app.route('/vocabulary', vocabulary)
 app.route('/phrases', phrases)
 app.route('/progress', progress)

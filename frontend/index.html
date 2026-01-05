@@ -499,25 +499,6 @@
             background: rgba(0, 0, 0, 0.2);
         }
 
-        /* Journal History Scrollbar */
-        #journal-history-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #journal-history-list::-webkit-scrollbar-track {
-            background: rgba(59, 130, 246, 0.05);
-            border-radius: 3px;
-        }
-
-        #journal-history-list::-webkit-scrollbar-thumb {
-            background: rgba(59, 130, 246, 0.3);
-            border-radius: 3px;
-        }
-
-        #journal-history-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(59, 130, 246, 0.5);
-        }
-
         /* Ornate Nav Item Styles */
         .nav-item {
             transition: all 0.3s ease;
@@ -940,11 +921,7 @@
             
             <button onclick="navTo('dashboard')" class="nav-item active flex items-center gap-4 px-4 py-4">
                 <span class="text-2xl icon">🏴‍☠️</span>
-                <span>Captain’s Deck</span>
-            </button>
-            <button onclick="navTo('journal')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-2xl icon">🗡️</span>
-                <span>Logbook</span>
+                <span>Captain's Deck</span>
             </button>
             <button onclick="navTo('phrases')" class="nav-item flex items-center gap-4 px-4 py-4">
                 <span class="text-2xl icon">📢</span>
@@ -1014,17 +991,7 @@
                 style="background: linear-gradient(135deg, rgba(139, 105, 20, 0.3), rgba(101, 67, 33, 0.5)); border: 2px solid var(--bronze-dark);">
                 <span class="relative z-10 flex items-center gap-3">
                     <span class="text-2xl">🏴‍☠️</span>
-                    Captain’s Deck
-                </span>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
-            
-            <button onclick="navTo('journal')"
-                class="p-4 text-left rounded-xl text-lg transition-all font-bold text-amber-100 hover:text-white relative overflow-hidden group"
-                style="background: linear-gradient(135deg, rgba(139, 105, 20, 0.3), rgba(101, 67, 33, 0.5)); border: 2px solid var(--bronze-dark);">
-                <span class="relative z-10 flex items-center gap-3">
-                    <span class="text-2xl">🗡️</span>
-                    Logbook
+                    Captain's Deck
                 </span>
                 <div class="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             </button>
@@ -1204,132 +1171,6 @@
                         </p>
                     </div>
 
-                    <button onclick="navTo('journal')"
-                        class="w-full py-4 rounded-2xl font-black op-title text-lg transition-all transform hover:scale-105 active:scale-95 relative overflow-hidden group"
-                        style="background: linear-gradient(135deg, var(--ocean-mid), var(--ocean-deep)); color: white; border: 3px solid var(--bronze-dark); box-shadow: 0 0 0 1px var(--copper), 6px 6px 0 rgba(30, 58, 95, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.2);">
-                        <span class="relative z-10 flex items-center justify-center gap-2">
-                            <span class="text-2xl">⚔️</span>
-                            TRAIN WITH ZORO
-                            <span class="text-2xl">⚔️</span>
-                        </span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                    </button>
-                </div>
-            </div>
-        </section>
-
-        <!-- SECTION: JOURNAL -->
-        <section id="journal" class="hidden h-full flex flex-col max-w-7xl mx-auto">
-            <div class="flex flex-col lg:flex-row gap-6 h-full">
-                <!-- Left Side: Writing Area -->
-                <div class="flex-1 flex flex-col space-y-6">
-                    <header
-                        class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white/40 p-3 sm:p-4 md:p-6 rounded-3xl border-b-4"
-                        style="border-color: var(--op-wood)">
-                        <div class="flex items-center gap-4">
-                            <span class="text-4xl">🗡️</span>
-                            <div>
-                                <h2 class="text-2xl font-bold text-slate-800 op-font">Zoro's Training Room</h2>
-                                <p class="text-slate-600 text-sm font-medium italic">Each word is a slash toward
-                                    mastery.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 px-1">
-                            <button onclick="translateText()"
-                                class="px-4 sm:px-5 py-3 glass-card hover:bg-[var(--op-sky)] text-slate-800 rounded-xl transition-all flex items-center gap-2 whitespace-nowrap font-bold flex-shrink-0">
-                                <span>🌐</span> Translate
-                            </button>
-                            <button onclick="clearJournal()"
-                                class="px-4 sm:px-5 py-3 glass-card hover:bg-white text-slate-400 hover:text-red-500 rounded-xl transition-all whitespace-nowrap font-medium flex-shrink-0">Clear</button>
-                            <button onclick="processEntry()"
-                                class="px-4 sm:px-6 py-3 bg-[var(--op-red)] hover:bg-[#b00000] text-white rounded-xl shadow-lg transition-all flex items-center gap-2 whitespace-nowrap font-black border-2 border-[#5d3615] flex-shrink-0">
-                                <span>✨</span> Gum Gum no
-                            </button>
-                        </div>
-                    </header>
-
-                    <div class="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[400px]">
-                        <!-- English Input with Rope Border -->
-                        <div class="flex flex-col h-full glass-card p-2 rounded-3xl relative"
-                             style="border: 4px solid var(--rope-brown); box-shadow: 0 0 0 2px var(--bronze-light), 6px 6px 0 rgba(139, 69, 19, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3);">
-                            <!-- Decorative rope corners -->
-                            <div class="absolute -top-2 -left-2 w-8 h-8 rounded-full" style="background: radial-gradient(circle, var(--rope-brown), var(--bronze-dark)); border: 2px solid var(--bronze-light);"></div>
-                            <div class="absolute -top-2 -right-2 w-8 h-8 rounded-full" style="background: radial-gradient(circle, var(--rope-brown), var(--bronze-dark)); border: 2px solid var(--bronze-light);"></div>
-                            
-                            <div class="px-6 py-4 border-b-2 flex justify-between items-center" style="border-color: var(--rope-brown);">
-                                <label class="text-sm font-black uppercase tracking-wider flex items-center gap-2" style="color: var(--ship-wood);">
-                                    <span class="text-lg">📝</span>
-                                    English Thoughts
-                                </label>
-                                <span class="text-xs font-bold" style="color: var(--text-secondary);">Press Enter for new bullet</span>
-                            </div>
-                            <div id="english-bullets-container" class="flex-1 w-full p-6 overflow-y-auto space-y-3">
-                                <!-- Bullet points will be added here dynamically -->
-                            </div>
-                        </div>
-
-                        <!-- German Input with Enhanced Rope Border -->
-                        <div class="flex flex-col h-full glass-card p-2 rounded-3xl relative"
-                             style="border: 4px solid var(--ocean-mid); box-shadow: 0 0 0 2px var(--gold-accent), 6px 6px 0 rgba(46, 99, 164, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 0 20px rgba(74, 123, 167, 0.2);">
-                            <!-- Decorative anchor corners -->
-                            <div class="absolute -top-3 -left-3 text-2xl" style="color: var(--ocean-mid);">⚓</div>
-                            <div class="absolute -top-3 -right-3 text-2xl transform rotate-45" style="color: var(--ocean-mid);">⚓</div>
-                            
-                            <div class="px-6 py-4 border-b-2 flex justify-between items-center rounded-t-[20px]"
-                                 style="border-color: var(--ocean-mid); background: linear-gradient(135deg, rgba(74, 123, 167, 0.1), rgba(96, 191, 245, 0.05));">
-                                <label class="text-sm font-black uppercase tracking-wider flex items-center gap-2" style="color: var(--ocean-deep);">
-                                    <span class="text-lg">🇩🇪</span>
-                                    Auf Deutsch
-                                </label>
-                                <span class="text-xs font-bold" style="color: var(--ocean-mid);">Press Enter for new bullet</span>
-                            </div>
-                            <div id="german-bullets-container" class="flex-1 w-full p-6 overflow-y-auto space-y-3">
-                                <!-- Bullet points will be added here dynamically -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="feedback-area"
-                        class="hidden p-4 glass-card border border-green-200 rounded-2xl flex justify-between items-center bg-green-50">
-                        <span class="text-green-800 font-medium">🎉 Entry saved! <span id="new-words-count"
-                                class="font-bold">0</span> new words added.</span>
-                        <button onclick="this.parentElement.classList.add('hidden')"
-                            class="text-green-600 hover:text-green-800 font-bold">Dismiss</button>
-                    </div>
-                </div>
-
-                <!-- Right Side: Scroll History Sidebar -->
-                <div class="w-full lg:w-80 flex flex-col h-full">
-                    <div class="glass-card h-full flex flex-col p-6 rounded-3xl relative overflow-hidden"
-                         style="border: 4px solid var(--bronze-dark); box-shadow: 0 0 0 2px var(--copper), 6px 6px 0 rgba(139, 105, 20, 0.3); background: linear-gradient(180deg, var(--aged-paper), var(--parchment-warm));">
-                        
-                        <!-- Decorative scroll top -->
-                        <div class="absolute top-0 left-0 right-0 h-8 opacity-20 pointer-events-none"
-                             style="background: repeating-linear-gradient(90deg, var(--rope-brown) 0px, var(--rope-brown) 20px, transparent 20px, transparent 40px);"></div>
-                        
-                        <div class="flex justify-between items-center mb-4 pb-3 border-b-2" style="border-color: var(--rope-brown);">
-                            <h3 class="font-black text-xl compass-accent op-font" style="color: var(--ship-wood);">History Scroll</h3>
-                            <select id="journal-sort" onchange="loadJournalHistory()"
-                                class="text-xs px-3 py-2 rounded-lg font-bold focus:outline-none transition-all"
-                                style="background: linear-gradient(135deg, var(--aged-paper), var(--parchment-warm)); border: 2px solid var(--bronze-dark); color: var(--ship-wood);">
-                                <option value="newest">Newest</option>
-                                <option value="oldest">Oldest</option>
-                                <option value="longest">Longest</option>
-                            </select>
-                        </div>
-
-                        <div id="journal-history-list" class="flex-1 overflow-y-auto pr-2 space-y-3 scroll-smooth" style="max-height: calc(100vh - 300px);">
-                            <!-- Populated by JS -->
-                            <div class="text-center py-10 opacity-50">
-                                <div class="text-4xl mb-2">📜</div>
-                                <div class="text-sm font-bold" style="color: var(--text-secondary);">Loading scrolls...</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Decorative scroll bottom -->
-                        <div class="absolute bottom-0 left-0 right-0 h-8 opacity-20 pointer-events-none"
-                             style="background: repeating-linear-gradient(90deg, var(--rope-brown) 0px, var(--rope-brown) 20px, transparent 20px, transparent 40px);"></div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -1362,7 +1203,8 @@
                             <input type="text" id="new-phrase-english" placeholder="Enter English phrase (e.g., 'How are you?')..."
                                 class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300"
                                 onkeypress="if(event.key === 'Enter') addPhrase()">
-                            <input type="text" id="new-phrase-german" placeholder="German translation (optional - will auto-translate)..."
+                            <div class="text-center text-xs font-bold text-slate-500 -my-1">OR</div>
+                            <input type="text" id="new-phrase-german" placeholder="Enter German phrase (e.g., 'Wie geht es dir?')..."
                                 class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all placeholder-slate-300"
                                 onkeypress="if(event.key === 'Enter') addPhrase()">
                             <div class="flex gap-3">
@@ -1377,11 +1219,15 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                            <p class="text-xs text-blue-700 font-medium">
-                                <span class="font-bold">✨ Auto-Translation:</span> Just enter the English phrase and click "Add Phrase".
-                                The system will automatically translate it to German and generate example sentences in both languages!
+                        <div class="mt-3 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
+                            <p class="text-xs text-slate-700 font-medium mb-2">
+                                <span class="font-bold">✨ Bidirectional Auto-Translation:</span>
                             </p>
+                            <ul class="text-xs text-slate-600 space-y-1 ml-4">
+                                <li>• <strong>English → German:</strong> Enter English phrase, get German translation + examples</li>
+                                <li>• <strong>German → English:</strong> Enter German phrase, get English translation + examples</li>
+                                <li>• Works both ways! Just fill one field and click "Add Phrase"</li>
+                            </ul>
                         </div>
                     </div>
 
