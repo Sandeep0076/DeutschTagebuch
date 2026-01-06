@@ -8,8 +8,11 @@ const router = new Hono()
  */
 router.get('/', async (c) => {
     try {
+        console.log('[DEBUG] GET /notes endpoint called');
         const supabase = getSupabaseClient(c.env);
         const sort = c.req.query('sort') || 'newest';
+        console.log('[DEBUG] Sort parameter:', sort);
+        
         let query = supabase.from('notes').select('*');
 
         if (sort === 'az') {
@@ -22,8 +25,17 @@ router.get('/', async (c) => {
             query = query.order('created_at', { ascending: false });
         }
 
+        console.log('[DEBUG] Executing query to fetch notes...');
         const { data: notes, error } = await query;
-        if (error) throw error;
+        if (error) {
+            console.error('[DEBUG] Supabase query error:', error);
+            throw error;
+        }
+
+        console.log('[DEBUG] Notes fetched successfully:', { 
+            count: notes ? notes.length : 0, 
+            notes: notes?.map(n => ({ id: n.id, title: n.title, created_at: n.created_at })) 
+        });
 
         return c.json({
             success: true,
@@ -31,8 +43,15 @@ router.get('/', async (c) => {
             count: notes ? notes.length : 0
         });
     } catch (error) {
-        console.error('Error fetching notes:', error);
-        return c.json({ success: false, error: 'Failed to fetch notes' }, 500);
+        console.error('[ERROR] Error fetching notes:', error);
+        console.error('[ERROR] Error code:', error.code);
+        console.error('[ERROR] Error message:', error.message);
+        console.error('[ERROR] Error details:', error.details);
+        return c.json({ 
+            success: false, 
+            error: 'Failed to fetch notes',
+            details: error.message 
+        }, 500);
     }
 });
 
@@ -68,24 +87,39 @@ router.get('/:id', async (c) => {
  */
 router.post('/', async (c) => {
     try {
+        console.log('[DEBUG] POST /notes endpoint called');
         const supabase = getSupabaseClient(c.env);
-        const { title, content } = await c.req.json();
+        console.log('[DEBUG] Supabase client created successfully');
+        
+        const body = await c.req.json();
+        console.log('[DEBUG] Request body received:', body);
+        
+        const { title, content } = body;
         if (!title || !content) {
+            console.log('[DEBUG] Missing title or content:', { title: !!title, content: !!content });
             return c.json({ success: false, error: 'Both title and content are required' }, 400);
         }
 
+        console.log('[DEBUG] Attempting to insert note:', { title: title.trim(), content: content.trim() });
         const { data: newNote, error } = await supabase
             .from('notes')
             .insert({ title: title.trim(), content: content.trim() })
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[DEBUG] Supabase insert error:', error);
+            throw error;
+        }
 
+        console.log('[DEBUG] Note created successfully:', newNote);
         return c.json({ success: true, data: newNote }, 201);
     } catch (error) {
-        console.error('Error creating note:', error);
-        return c.json({ success: false, error: 'Failed to create note' }, 500);
+        console.error('[ERROR] Error creating note:', error);
+        console.error('[ERROR] Error code:', error.code);
+        console.error('[ERROR] Error message:', error.message);
+        console.error('[ERROR] Error details:', error.details);
+        return c.json({ success: false, error: 'Failed to create note', details: error.message }, 500);
     }
 });
 

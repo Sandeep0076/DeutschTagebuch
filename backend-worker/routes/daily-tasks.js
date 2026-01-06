@@ -33,6 +33,8 @@ router.get('/', async (c) => {
       const taskProgress = progress?.find(p => p.task_id === task.id)
 
       // Override: rename "Read a Book" task to "Daily Conversation" and set 30-minute duration
+      // Override: change "Shadowing Speaking" duration to 5 minutes
+      // Override: change "Phrase Learning" duration to 10 minutes
       let name = task.name
       let durationMinutes = task.duration_minutes
       if (typeof task.name === 'string') {
@@ -45,6 +47,20 @@ router.get('/', async (c) => {
           })
           name = 'Daily Conversation'
           durationMinutes = 30
+        } else if (lower.includes('shadowing') && lower.includes('speaking')) {
+          console.log('[daily-tasks] Setting Shadowing Speaking duration to 5 minutes', {
+            taskId: task.id,
+            originalName: task.name,
+            originalDuration: task.duration_minutes
+          })
+          durationMinutes = 5
+        } else if (lower.includes('phrase') && lower.includes('learning')) {
+          console.log('[daily-tasks] Setting Phrase Learning duration to 10 minutes', {
+            taskId: task.id,
+            originalName: task.name,
+            originalDuration: task.duration_minutes
+          })
+          durationMinutes = 10
         }
       }
 
@@ -150,6 +166,8 @@ router.post('/:id/start', async (c) => {
     }
 
     // Override duration/name for "Read a Book" when starting (keep DB unchanged)
+    // Override duration for "Shadowing Speaking" to 5 minutes
+    // Override duration for "Phrase Learning" to 10 minutes
     let effectiveDuration = task.duration_minutes
     if (typeof task.name === 'string') {
       const lower = task.name.toLowerCase()
@@ -159,6 +177,18 @@ router.post('/:id/start', async (c) => {
           originalDuration: task.duration_minutes
         })
         effectiveDuration = 30
+      } else if (lower.includes('shadowing') && lower.includes('speaking')) {
+        console.log('[daily-tasks] Start override: Shadowing Speaking 5-minute timer', {
+          taskId,
+          originalDuration: task.duration_minutes
+        })
+        effectiveDuration = 5
+      } else if (lower.includes('phrase') && lower.includes('learning')) {
+        console.log('[daily-tasks] Start override: Phrase Learning 10-minute timer', {
+          taskId,
+          originalDuration: task.duration_minutes
+        })
+        effectiveDuration = 10
       }
     }
 
