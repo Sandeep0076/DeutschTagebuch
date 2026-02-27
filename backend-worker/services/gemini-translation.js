@@ -79,6 +79,8 @@ export async function generateExampleSentences(englishPhrase, germanPhrase, env 
         throw new Error('GEMINI_API_KEY is not set');
     }
 
+    console.log(`[DEBUG] Generating examples for: EN="${englishPhrase}", DE="${germanPhrase}"`);
+
     const payload = {
         contents: [{
             parts: [{
@@ -88,13 +90,13 @@ German: "${germanPhrase}"
 
 Requirements:
 - Create ONE example sentence in English that uses "${englishPhrase}" naturally in context
-- Create ONE example sentence in German that uses "${germanPhrase}" naturally in context
-- Both sentences should convey similar meaning but don't need to be direct translations
+- The German example MUST be an exact translation of the English example, using "${germanPhrase}" in the same context
+- Both sentences MUST mean exactly the same thing - one is the translation of the other
 - Make them complete, realistic, and conversational
 - Keep them simple and easy to understand
 - Return ONLY the two example sentences in this exact format:
 ENGLISH: [your English example]
-GERMAN: [your German example]
+GERMAN: [exact German translation of the English example]
 
 Do not include any other text, quotes, or explanations.`
             }]
@@ -121,6 +123,7 @@ Do not include any other text, quotes, or explanations.`
         
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
             const responseText = data.candidates[0].content.parts[0].text.trim();
+            console.log('[DEBUG] Gemini example response:', responseText);
             
             // Parse the response to extract English and German examples
             const englishMatch = responseText.match(/ENGLISH:\s*(.+?)(?=\nGERMAN:|$)/s);
@@ -135,10 +138,12 @@ Do not include any other text, quotes, or explanations.`
             
             // Fallback if parsing failed
             if (!exampleEnglish || !exampleGerman) {
-                console.warn('Failed to parse example sentences, using fallback');
+                console.warn('[DEBUG] Failed to parse example sentences, using fallback');
                 exampleEnglish = `${englishPhrase}, I didn't expect to see you here!`;
                 exampleGerman = `${germanPhrase}, ich habe nicht erwartet, dich hier zu sehen!`;
             }
+            
+            console.log(`[DEBUG] Generated examples: EN="${exampleEnglish}", DE="${exampleGerman}"`);
             
             return {
                 exampleEnglish,

@@ -13,7 +13,6 @@ const state = {
     selectedCategoryId: 'all',
     categories: [],
     editingWordId: null,
-    journeyMap: null,
     randomWords: [],
     wordOfTheDay: null,
     apiRetryCount: {}, // Track retry attempts per endpoint
@@ -151,9 +150,6 @@ function navTo(viewId) {
     // Load data for specific views
     if (viewId === 'dashboard') {
         loadDashboard();
-        if (state.journeyMap) {
-            state.journeyMap.refresh();
-        }
     }
     if (viewId === 'phrases') {
         loadPhraseCategories();
@@ -191,11 +187,6 @@ function updateTimerDisplay() {
 
     const percentage = Math.min((state.timer / 3600) * 100, 100);
     document.getElementById('timer-bar').style.width = `${percentage}%`;
-
-    // Update journey activity every minute
-    if (state.timer > 0 && state.timer % 60 === 0) {
-        updateJourneyActivity({ minutes_practiced: 1 });
-    }
 }
 
 // --- WORD OF THE DAY FUNCTIONALITY ---
@@ -379,11 +370,6 @@ async function loadDashboard() {
 
         // Load daily tasks
         await loadDailyTasks();
-
-        // Initialize journey map if not already initialized
-        if (!state.journeyMap) {
-            initJourneyMap();
-        }
     } catch (error) {
         console.error('Error loading dashboard:', error);
         if (document.getElementById('user-level')) {
@@ -723,43 +709,8 @@ async function completeDailyTask(taskId) {
         
         // Check if all tasks are completed
         if (result.data.all_tasks_completed) {
-            setTimeout(async () => {
+            setTimeout(() => {
                 showAllTasksCompletedMessage();
-                
-                // Automatically complete the journey day when all tasks are done
-                try {
-                    console.log('[DEBUG] All daily tasks completed - triggering journey day completion');
-                    const journeyResult = await apiCall('/journey/complete-day', {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            date: new Date().toISOString().split('T')[0],
-                            minutes_practiced: 0, // Tasks completion counts regardless of minutes
-                            vocabulary_added: 0   // Tasks completion counts regardless of vocabulary
-                        })
-                    });
-                    
-                    if (journeyResult.success) {
-                        console.log('[DEBUG] Journey day completed successfully:', journeyResult);
-                        
-                        // Show journey advancement message if day was completed
-                        if (journeyResult.day_completed) {
-                            setTimeout(() => {
-                                showJourneyAdvancementMessage(journeyResult);
-                            }, 1500);
-                        }
-                    } else {
-                        console.warn('[DEBUG] Journey completion failed:', journeyResult.error);
-                    }
-                } catch (journeyError) {
-                    console.error('[DEBUG] Error completing journey day:', journeyError);
-                }
-                
-                // Refresh journey map to show advancement
-                if (state.journeyMap) {
-                    setTimeout(() => {
-                        state.journeyMap.refresh();
-                    }, 2000);
-                }
             }, 2000);
         }
         
@@ -813,39 +764,6 @@ function showAllTasksCompletedMessage() {
                     class="px-8 py-3 rounded-xl font-black op-font text-white transition-all transform hover:scale-105"
                     style="background: linear-gradient(135deg, var(--ocean-mid), var(--ocean-deep)); border: 3px solid var(--bronze-dark);">
                 Continue Adventure
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(message);
-}
-
-/**
- * Show journey day advancement message
- */
-function showJourneyAdvancementMessage(journeyResult) {
-    const message = document.createElement('div');
-    message.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4';
-    message.innerHTML = `
-        <div class="glass-card p-8 rounded-3xl max-w-md text-center animate-bounce-in"
-             style="border: 4px solid var(--compass-accent); box-shadow: 0 0 30px rgba(255, 140, 0, 0.6);">
-            <div class="text-6xl mb-4">⭐</div>
-            <h2 class="text-3xl font-black op-title mb-3" style="color: var(--ship-wood);">
-                Day ${journeyResult.journey_day} Complete!
-            </h2>
-            <p class="text-lg font-bold mb-6" style="color: var(--text-secondary);">
-                ${journeyResult.next_day <= 30 ? `Advancing to Day ${journeyResult.next_day}` : 'Journey Complete!'} 🗺️
-            </p>
-            ${journeyResult.milestone_reached ? `
-                <div class="mb-4 p-4 rounded-xl" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 140, 0, 0.1));">
-                    <div class="text-3xl mb-2">🎖️</div>
-                    <div class="font-bold text-sm" style="color: var(--gold-accent);">Milestone Reached!</div>
-                </div>
-            ` : ''}
-            <button onclick="this.closest('.fixed').remove()"
-                    class="px-8 py-3 rounded-xl font-black op-font text-white transition-all transform hover:scale-105"
-                    style="background: linear-gradient(135deg, var(--compass-accent), var(--bronze-dark)); border: 3px solid var(--gold-accent);">
-                Continue Journey
             </button>
         </div>
     `;
@@ -2045,49 +1963,6 @@ function sortNotes() {
     loadNotes();
 }
 
-
-// --- JOURNEY MAP INTEGRATION ---
-function initJourneyMap() {
-    try {
-        // Create journey map container if not exists in dashboard
-        let container = document.getElementById('journey-map-widget');
-        if (!container) {
-            const dashboardSection = document.getElementById('dashboard');
-            const journeyCard = dashboardSection?.querySelector('.glass-card.p-6.rounded-3xl');
-            if (journeyCard) {
-                // Replace the simple timeline with full journey map
-                container = document.createElement('div');
-                container.id = 'journey-map-widget';
-                journeyCard.innerHTML = '';
-                journeyCard.appendChild(container);
-            }
-        }
-
-        if (container && typeof JourneyMap !== 'undefined') {
-            state.journeyMap = new JourneyMap('journey-map-widget', API_BASE);
-            state.journeyMap.init();
-            console.log('✅ Journey map initialized');
-        }
-    } catch (error) {
-        console.error('Error initializing journey map:', error);
-    }
-}
-
-async function updateJourneyActivity(activity) {
-    try {
-        await apiCall('/journey/update-activity', {
-            method: 'POST',
-            body: JSON.stringify(activity)
-        });
-
-        // Refresh journey map if active
-        if (state.journeyMap && state.currentView === 'dashboard') {
-            await state.journeyMap.refresh();
-        }
-    } catch (error) {
-        console.error('Error updating journey activity:', error);
-    }
-}
 
 // --- WANTED POSTER SYSTEM ---
 function showWantedPoster() {

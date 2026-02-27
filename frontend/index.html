@@ -9,8 +9,6 @@
     <link rel="icon" type="image/png" href="assets/straw_hat_icon.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Journey Map Styles -->
-    <link rel="stylesheet" href="styles/journey-map.css">
     <script>
         tailwind.config = {
             theme: {
@@ -1107,16 +1105,6 @@
                     </div>
                 </div>
             </header>
-
-            <!-- Journey Map Widget -->
-            <div id="journey-map-widget" class="glass-card p-6 rounded-3xl relative overflow-hidden mb-6"
-                 style="border: 4px solid var(--bronze-dark); box-shadow: 0 0 0 2px var(--copper), 8px 8px 0 rgba(139, 105, 20, 0.3);">
-                <!-- Journey map will be rendered here by JavaScript -->
-                <div class="text-center py-10 opacity-50">
-                    <div class="text-4xl mb-2">🗺️</div>
-                    <div class="text-sm font-bold" style="color: var(--text-secondary);">Loading journey map...</div>
-                </div>
-            </div>
             
             <!-- Daily Tasks Section -->
             <div class="glass-card p-6 rounded-3xl mb-6 relative overflow-hidden"
@@ -1128,7 +1116,7 @@
                         <span class="compass-accent">Daily Tasks</span>
                     </h3>
                     <p class="text-sm font-bold" style="color: var(--text-secondary);">
-                        Complete all 6 tasks to advance your journey! Total: 90 minutes
+                        Complete all 6 tasks for today! Total: 90 minutes
                     </p>
                 </div>
                 
@@ -1524,8 +1512,6 @@
         </div>
     </div>
 
-    <!-- Journey Map Component -->
-    <script src="components/journey-map.js"></script>
     <!-- Global Search Component -->
     <script src="components/global-search.js"></script>
     <!-- JavaScript Logic -->
