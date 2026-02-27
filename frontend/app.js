@@ -246,7 +246,7 @@ function getWordOfTheDay() {
 }
 
 /**
- * Display word of the day in Robin's Secret Message
+ * Display word of the day
  */
 function displayWordOfTheDay() {
     const wordData = state.wordOfTheDay;
@@ -2165,9 +2165,9 @@ function navigateToPrevious() {
 
 function getViewDisplayName(viewId) {
     const displayNames = {
-        'dashboard': 'Captain\'s Deck',
-        'phrases': 'Crew Chants',
-        'motivation': 'Ship Notes'
+        'dashboard': 'Dashboard',
+        'phrases': 'Phrases',
+        'motivation': 'Notes'
     };
     return displayNames[viewId] || viewId;
 }

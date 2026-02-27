@@ -49,7 +49,7 @@ class GlobalSearch {
           <div class="flex items-center gap-4 mb-4">
             <span class="text-3xl">🔍</span>
             <h2 class="text-2xl font-black op-font compass-accent" style="color: var(--ship-wood);">
-              Search Treasures
+              Search
             </h2>
             <button onclick="window.globalSearch.close()"
                     class="ml-auto w-10 h-10 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all transform hover:scale-110"
