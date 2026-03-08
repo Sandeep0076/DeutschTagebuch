@@ -923,16 +923,16 @@ function renderPhrases(phrases) {
 
     phrases.forEach((phrase, index) => {
         const div = document.createElement('div');
-        div.className = 'glass-card rounded-2xl overflow-hidden cursor-pointer group hover:scale-[1.01] transition-all border-2 border-[var(--op-wood)] shadow-[4px_4px_0px_#5d3615] bg-[#fffcf0] relative';
+        div.className = 'glass-card phrase-card rounded-[28px] overflow-hidden cursor-pointer group hover:scale-[1.01] transition-all relative';
 
         // All phrases are now from the database and can be edited/deleted
         const actionButtons = `
             <div class="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10">
                 <button onclick="showEditPhraseModal(event, ${phrase.id})"
-                    class="w-8 h-8 flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all shadow-md hover:scale-110"
+                    class="w-9 h-9 flex items-center justify-center bg-white/75 hover:bg-white text-slate-700 rounded-xl transition-all shadow-md hover:scale-110 border border-white/70"
                     title="Edit Phrase">✏️</button>
                 <button onclick="deletePhrase(event, ${phrase.id}, ${phrase.builtin})"
-                    class="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all shadow-md hover:scale-110"
+                    class="w-9 h-9 flex items-center justify-center bg-rose-100/85 hover:bg-rose-200 text-rose-600 rounded-xl transition-all shadow-md hover:scale-110 border border-white/70"
                     title="Delete Phrase">💀</button>
             </div>
         `;
@@ -947,35 +947,35 @@ function renderPhrases(phrases) {
             ${actionButtons}
             <div class="p-6" onclick="toggleTranslation(${index})">
                 <div class="flex justify-between items-start mb-3">
-                    <span class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest op-font">German Phrase</span>
-                    <span class="text-[10px] text-slate-400 group-hover:text-[var(--op-red)] transition-colors font-black uppercase">View Details</span>
+                    <span class="text-[10px] font-black text-sky-500 uppercase tracking-[0.22em] op-font">German Phrase</span>
+                    <span class="text-[10px] text-slate-400 group-hover:text-sky-600 transition-colors font-black uppercase">View Details</span>
                 </div>
                 <p class="text-2xl text-slate-800 font-bold leading-relaxed op-font mb-3">${germanPhrase}</p>
                 <div class="text-sm text-slate-600 italic">${meaning}</div>
             </div>
-            <div id="phrase-de-${index}" class="bg-[var(--op-yellow)]/20 p-6 border-t-2 border-dashed border-[#5d3615] hidden" onclick="toggleTranslation(${index})">
+            <div id="phrase-de-${index}" class="phrase-detail-panel p-6 hidden" onclick="toggleTranslation(${index})">
                 <div class="space-y-4">
                     <div>
-                        <div class="text-[10px] font-black text-[var(--op-red)] uppercase tracking-widest mb-2 op-font">🇩🇪 German Example</div>
+                        <div class="text-[10px] font-black text-rose-400 uppercase tracking-[0.22em] mb-2 op-font">🇩🇪 German Example</div>
                         <div class="flex items-center gap-2">
-                            <p class="text-lg font-bold text-[#5d3615] op-font flex-1">${exampleGerman}</p>
+                            <p class="text-lg font-bold text-slate-700 op-font flex-1">${exampleGerman}</p>
                             <button onclick="speakGermanWord(event, '${exampleGerman.replace(/'/g, "\\'")}', ${phrase.id})"
                                 id="speaker-${phrase.id}"
-                                class="w-8 h-8 flex items-center justify-center bg-[var(--ocean-mid)] hover:bg-[var(--ocean-deep)] text-white rounded-lg transition-all shadow-md hover:scale-110 flex-shrink-0"
+                                class="w-9 h-9 flex items-center justify-center bg-sky-500 hover:bg-sky-600 text-white rounded-xl transition-all shadow-md hover:scale-110 flex-shrink-0"
                                 title="Pronounce phrase">
                                 🔊
                             </button>
                         </div>
                     </div>
                     <div>
-                        <div class="text-[10px] font-black text-[var(--op-blue)] uppercase tracking-widest mb-2 op-font">🇬🇧 English Example</div>
+                        <div class="text-[10px] font-black text-sky-500 uppercase tracking-[0.22em] mb-2 op-font">🇬🇧 English Example</div>
                         <p class="text-lg font-medium text-slate-700">${exampleEnglish}</p>
                     </div>
                 </div>
-                <div class="mt-4 text-[10px] text-slate-500 italic text-center">Yo-ho-ho-ho! 🎻</div>
+                <div class="mt-4 text-[10px] text-slate-400 italic text-center">Practice with context</div>
             </div>
             <button onclick="markPhraseAsDone(event, ${phrase.id})"
-                class="absolute bottom-2 right-2 w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-green-600 text-white rounded-full transition-all shadow-md hover:scale-110 opacity-70 hover:opacity-100 text-xs"
+                class="absolute bottom-3 right-3 w-8 h-8 flex items-center justify-center bg-emerald-400/90 hover:bg-emerald-500 text-white rounded-full transition-all shadow-md hover:scale-110 opacity-85 hover:opacity-100 text-xs"
                 title="Mark as done">
                 ✓
             </button>
@@ -1798,12 +1798,12 @@ function renderNotes(notes) {
         document.getElementById('empty-notes-state').classList.add('hidden');
 
         // Define border colors for variety
-        const opColors = ['border-[var(--op-red)]', 'border-[var(--op-yellow)]', 'border-[var(--op-blue)]', 'border-[var(--op-wood)]'];
+        const opColors = ['note-accent-sky', 'note-accent-mint', 'note-accent-peach', 'note-accent-lilac'];
 
         notes.forEach((note, index) => {
             const div = document.createElement('div');
             const borderColor = opColors[index % opColors.length];
-            div.className = `glass-card p-8 rounded-2xl border-t-8 ${borderColor} bg-[#fffcf0] relative group shadow-[4px_4px_0px_#5d3615]`;
+            div.className = `glass-card note-card p-8 rounded-[28px] ${borderColor} relative group`;
 
             // Get category name if available
             const categoryName = note.note_categories?.name || 'Uncategorized';
