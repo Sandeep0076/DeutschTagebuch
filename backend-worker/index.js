@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import { getSupabaseClient } from './supabase.js'
 import vocabulary from './routes/vocabulary.js'
 import phrases from './routes/phrases.js'
 import progress from './routes/progress.js'
@@ -39,4 +40,21 @@ app.route('/data', data)
 app.route('/journey', journey)
 app.route('/daily-tasks', dailyTasks)
 
-export default app
+export default {
+    fetch: app.fetch,
+
+    async scheduled(_event, env) {
+        const supabase = getSupabaseClient(env)
+        const { error } = await supabase
+            .from('vocabulary')
+            .select('id')
+            .limit(1)
+
+        if (error) {
+            console.error('Scheduled Supabase keep-alive failed:', error)
+            throw error
+        }
+
+        console.log('Scheduled Supabase keep-alive succeeded')
+    }
+}
