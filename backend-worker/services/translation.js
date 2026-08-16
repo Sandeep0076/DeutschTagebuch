@@ -1,5 +1,27 @@
 import { translateWithGemini, translateToEnglish } from './gemini-translation.js';
 
+const TRANSLATION_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 300;
+
+async function retryTranslation(operation, provider) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= TRANSLATION_ATTEMPTS; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < TRANSLATION_ATTEMPTS) {
+        console.warn(`[Translation] ${provider} attempt ${attempt} failed; retrying. Error: ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 /**
  * Translate text between languages using MyMemory API (Fallback)
  * @param {string} text - The text to translate
@@ -16,21 +38,23 @@ export async function translateWithMyMemory(text, langpair = 'en|de') {
     url.searchParams.append('q', text);
     url.searchParams.append('langpair', langpair);
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' }
-    });
+    return await retryTranslation(async () => {
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
 
-    if (!response.ok) {
-      throw new Error(`Translation API error: ${response.status}`);
-    }
+      if (!response.ok) {
+        throw new Error(`Translation API error: ${response.status}`);
+      }
 
-    const data = await response.json();
-    if (data && data.responseData && data.responseData.translatedText) {
-      return data.responseData.translatedText;
-    } else {
+      const data = await response.json();
+      if (data && data.responseData && data.responseData.translatedText) {
+        return data.responseData.translatedText;
+      }
+
       throw new Error('Invalid response from translation API');
-    }
+    }, 'MyMemory');
   } catch (error) {
     throw new Error(`Translation failed: ${error.message}`);
   }
@@ -44,7 +68,7 @@ export async function translateWithMyMemory(text, langpair = 'en|de') {
  */
 export async function translateToGerman(text, env = null) {
   try {
-    return await translateWithGemini(text, env);
+    return await retryTranslation(() => translateWithGemini(text, env), 'Gemini (EN->DE)');
   } catch (error) {
     console.warn(`[Translation] Gemini (EN->DE) failed, falling back to MyMemory. Error: ${error.message}`);
     return await translateWithMyMemory(text, 'en|de');
@@ -59,7 +83,7 @@ export async function translateToGerman(text, env = null) {
  */
 export async function translateToEnglishWithFallback(text, env = null) {
   try {
-    return await translateToEnglish(text, env);
+    return await retryTranslation(() => translateToEnglish(text, env), 'Gemini (DE->EN)');
   } catch (error) {
     console.warn(`[Translation] Gemini (DE->EN) failed, falling back to MyMemory. Error: ${error.message}`);
     return await translateWithMyMemory(text, 'de|en');

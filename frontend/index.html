@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Bangers&family=Permanent+Marker&family=Outfit:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
 
     <style>
@@ -931,234 +931,182 @@
             }
         }
     </style>
+    <!-- Loaded last so the glossy glass palette overrides inline legacy styles -->
+    <link rel="stylesheet" href="design-system.css">
 </head>
 
-<body class="flex flex-col md:flex-row h-screen overflow-hidden relative">
+<body class="flex flex-col h-screen overflow-hidden relative">
 
     <!-- Background Overlay -->
     <div class="nautical-overlay"></div>
 
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
     <!-- Mobile Header -->
-    <div class="md:hidden flex justify-between items-center p-4 glass-sidebar sticky top-0 z-50 border-b-4" style="border-color: var(--bronze-dark);">
+    <div class="md:hidden flex justify-between items-center p-4 glass-sidebar sticky top-0 z-50">
         <div class="flex items-center gap-2">
-            <span class="text-2xl">⚓</span>
-            <div class="font-black text-xl tracking-wider text-amber-100 op-title drop-shadow-lg">DeutschTagebuch</div>
+            <img src="assets/straw_hat_icon.png" alt="" class="w-9 h-9 rounded-full object-cover" width="36" height="36">
+            <div class="font-black text-xl tracking-wider op-title">Deutsch Tagebuch</div>
         </div>
         <div class="flex items-center gap-2">
             <button onclick="window.globalSearch.open()"
-                    class="w-10 h-10 flex items-center justify-center treasure-chest text-white rounded-lg transition-all transform hover:scale-110"
-                    title="Search (Cmd+K)">
-                🔍
+                    class="w-10 h-10 flex items-center justify-center treasure-chest rounded-lg transition-all transform hover:scale-110"
+                    title="Search (Cmd+K)" aria-label="Search">
+                <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
             </button>
             <div id="mobile-timer"
-                class="treasure-chest font-mono text-sm text-white px-4 py-2 rounded-lg font-black shadow-lg">00:00</div>
+                class="treasure-chest font-mono text-sm px-4 py-2 rounded-lg font-black shadow-lg">00:00</div>
         </div>
-        <button id="mobile-menu-btn" class="text-amber-100 focus:outline-none hover:text-amber-300 transition-colors">
+        <button id="mobile-menu-btn" class="focus:outline-none transition-colors" aria-label="Open menu">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="3">
+                stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
             </svg>
         </button>
     </div>
 
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-white/20 backdrop-blur-md z-50 hidden"
+        onclick="toggleMobileMenu()">
+        <div class="glass-sidebar w-3/4 h-full p-6 flex flex-col gap-3 shadow-2xl"
+            onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color: rgba(176, 196, 235, 0.45);">
+                <h2 class="font-black text-2xl op-title">Navigation</h2>
+                <button onclick="toggleMobileMenu()" class="mobile-menu-close text-3xl font-bold transition-colors" aria-label="Close menu">✕</button>
+            </div>
+
+            <button onclick="navTo('dashboard')" class="mobile-nav-item nav-item flex items-center gap-4 px-4 py-4">
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                </span>
+                <span>Dashboard</span>
+            </button>
+
+            <button onclick="navTo('phrases')" class="mobile-nav-item nav-item flex items-center gap-4 px-4 py-4">
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 11v2a8 8 0 0 0 8 8h1"/><path d="M21 12a8 8 0 0 0-8-8H9v3l-4 3 4 3v3h2"/></svg>
+                </span>
+                <span>Phrases</span>
+            </button>
+
+            <button onclick="navTo('motivation')" class="mobile-nav-item nav-item flex items-center gap-4 px-4 py-4">
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 0 1 2-2z"/><path d="M9 8h6M9 12h6"/></svg>
+                </span>
+                <span>Notes</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="app-chrome flex flex-col md:flex-row flex-1 min-h-0 w-full">
     <!-- Floating Glass Sidebar (Desktop) -->
-    <nav id="sidebar" class="hidden md:flex flex-col w-72 glass-sidebar h-full z-40 p-6 pt-8">
+    <nav id="sidebar" class="hidden md:flex flex-col w-72 glass-sidebar h-full z-40 p-6 pt-8" aria-label="Primary">
         <div class="mb-10 px-2 flex flex-col items-center text-center relative">
-            <!-- Ornate Ship Wheel Border -->
-            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 text-4xl opacity-30" style="color: var(--gold-accent);">☸</div>
-            
             <div class="relative">
-                <img src="assets/straw_hat_icon.png" class="w-24 h-24 mb-4 rounded-full border-4 shadow-2xl"
-                     style="border-color: var(--gold-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), 0 8px 16px rgba(0, 0, 0, 0.5);" alt="Straw Hat">
-                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-20 h-1 rounded-full"
-                     style="background: linear-gradient(90deg, transparent, var(--gold-accent), transparent);"></div>
+                <img src="assets/straw_hat_icon.png" class="w-24 h-24 mb-4 rounded-full border-4 shadow-2xl" alt="Straw Hat">
             </div>
-            
-            <h1 class="text-3xl font-black text-amber-100 op-title drop-shadow-lg mt-2"
-                style="text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.3);">
-                DeutschTagebuch
+
+            <h1 class="text-3xl font-black op-title mt-2">
+                Deutsch Tagebuch
             </h1>
-            <div class="flex items-center gap-2 mt-2">
-                <span class="text-amber-400">⚓</span>
-                <p class="text-xs text-amber-200 uppercase tracking-widest font-black">Your German Learning Journey</p>
-                <span class="text-amber-400">⚓</span>
-            </div>
-            
-            <!-- Decorative rope divider -->
-            <div class="w-full h-px mt-4 opacity-50"
-                 style="background: repeating-linear-gradient(90deg, var(--rope-brown) 0px, var(--rope-brown) 10px, transparent 10px, transparent 15px);"></div>
+            <p class="text-[0.62rem] uppercase tracking-[0.14em] font-black mt-2" style="color: var(--text-secondary);">
+                Your German Learning Journey
+            </p>
         </div>
 
         <div class="flex-1 flex flex-col gap-2">
-            <!-- Global Search Button at Top -->
             <button onclick="window.globalSearch.open()"
                     class="treasure-chest p-4 rounded-2xl relative overflow-hidden mb-2 w-full transition-all transform hover:scale-105 active:scale-95 group"
                     title="Search Everything (Cmd+K)">
                 <div class="flex items-center justify-center gap-3 relative z-10">
-                    <span class="text-2xl">🔍</span>
-                    <span class="text-sm font-black text-amber-100 uppercase tracking-widest op-font">Search</span>
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg class="nav-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    </span>
+                    <span class="text-sm font-black uppercase tracking-widest op-font">Search</span>
                 </div>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
             </button>
-            
+
             <button onclick="navTo('dashboard')" class="nav-item active flex items-center gap-4 px-4 py-4">
-                <span class="text-2xl icon">🏴‍☠️</span>
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                </span>
                 <span>Dashboard</span>
             </button>
             <button onclick="navTo('phrases')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-2xl icon">📢</span>
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><path d="M3 11v2a8 8 0 0 0 8 8h1"/><path d="M21 12a8 8 0 0 0-8-8H9v3l-4 3 4 3v3h2"/></svg>
+                </span>
                 <span>Phrases</span>
             </button>
             <button onclick="navTo('motivation')" class="nav-item flex items-center gap-4 px-4 py-4">
-                <span class="text-2xl icon">🍖</span>
+                <span class="icon" aria-hidden="true">
+                    <svg class="nav-svg" viewBox="0 0 24 24"><path d="M6 4h11a2 2 0 0 1 2 2v14l-4-2-4 2-4-2-4 2V6a2 2 0 0 1 2-2z"/><path d="M9 8h6M9 12h6"/></svg>
+                </span>
                 <span>Notes</span>
             </button>
         </div>
 
-        <!-- Treasure Chest Timer Widget -->
         <div class="mt-auto">
             <div class="treasure-chest p-6 rounded-2xl relative overflow-hidden">
-                <!-- Decorative lock -->
-                <div class="absolute top-2 left-1/2 transform -translate-x-1/2 text-xl opacity-60">🔒</div>
-                
                 <div class="flex justify-between items-center mb-3 relative z-10">
                     <div class="flex items-center gap-2">
-                        <span class="text-lg">⏱️</span>
-                        <span class="text-[10px] font-black text-amber-100 uppercase tracking-widest op-font">Study Timer</span>
+                        <span class="text-[10px] font-black uppercase tracking-widest op-font">Study Timer</span>
                     </div>
-                    <span id="desktop-timer"
-                        class="text-white font-mono font-black text-2xl drop-shadow-lg"
-                        style="text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.5);">00:00</span>
+                    <span id="desktop-timer" class="font-mono font-black text-2xl">00:00</span>
                 </div>
-                
+
                 <div class="relative">
-                    <div class="w-full bg-gradient-to-r from-amber-900 to-amber-950 border-3 rounded-full h-4 overflow-hidden shadow-inner"
-                         style="border: 2px solid var(--rope-brown); box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);">
+                    <div class="w-full rounded-full h-4 overflow-hidden shadow-inner">
                         <div id="timer-bar"
                             class="h-full rounded-full transition-all duration-1000 relative"
-                            style="width: 0%; background: linear-gradient(90deg, var(--gold-accent) 0%, var(--bronze-light) 50%, var(--gold-accent) 100%); box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);"></div>
+                            style="width: 0%;"></div>
                     </div>
-                    <!-- Decorative gems on progress bar -->
-                    <div class="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs opacity-70">💎</div>
                 </div>
-                
+
                 <div class="flex justify-between items-center mt-3">
-                    <p class="text-[9px] text-amber-200 font-black uppercase tracking-wide">Daily Study</p>
-                    <p class="text-[9px] text-amber-300 font-mono font-bold">⚡ 60 mins</p>
+                    <p class="text-[9px] font-black uppercase tracking-wide" style="color: var(--text-secondary);">Daily Study</p>
+                    <p class="text-[9px] font-mono font-bold" style="color: var(--text-secondary);">60 mins</p>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Nautical Mobile Menu Overlay -->
-    <div id="mobile-menu" class="fixed inset-0 bg-white/20 backdrop-blur-md z-50 hidden"
-        onclick="toggleMobileMenu()">
-        <div class="glass-sidebar w-3/4 h-full p-6 flex flex-col gap-3 shadow-2xl border-r-4"
-            style="border-color: rgba(255, 255, 255, 0.62);"
-            onclick="event.stopPropagation()">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b" style="border-color: rgba(176, 196, 235, 0.5);">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">⚓</span>
-                    <h2 class="font-black text-2xl text-amber-100 op-title">Navigation</h2>
-                </div>
-                <button onclick="toggleMobileMenu()" class="text-amber-100 hover:text-amber-300 text-3xl font-bold transition-colors">✕</button>
-            </div>
-            
-            <button onclick="navTo('dashboard')"
-                class="p-4 text-left rounded-xl text-lg transition-all font-bold text-amber-100 hover:text-white relative overflow-hidden group"
-                style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(230, 239, 255, 0.34)); border: 1px solid rgba(255, 255, 255, 0.62);">
-                <span class="relative z-10 flex items-center gap-3">
-                    <span class="text-2xl">🏴‍☠️</span>
-                    Dashboard
-                </span>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
-            
-            <button onclick="navTo('phrases')"
-                class="p-4 text-left rounded-xl text-lg transition-all font-bold text-amber-100 hover:text-white relative overflow-hidden group"
-                style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(230, 239, 255, 0.34)); border: 1px solid rgba(255, 255, 255, 0.62);">
-                <span class="relative z-10 flex items-center gap-3">
-                    <span class="text-2xl">📢</span>
-                    Phrases
-                </span>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
-            
-            <button onclick="navTo('motivation')"
-                class="p-4 text-left rounded-xl text-lg transition-all font-bold text-amber-100 hover:text-white relative overflow-hidden group"
-                style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(230, 239, 255, 0.34)); border: 1px solid rgba(255, 255, 255, 0.62);">
-                <span class="relative z-10 flex items-center gap-3">
-                    <span class="text-2xl">🍖</span>
-                    Notes
-                </span>
-                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-            </button>
-
-            <!-- Decorative compass at bottom -->
-            <div class="mt-auto pt-6 text-center opacity-30 text-6xl">☸</div>
-        </div>
-    </div>
-
     <!-- Main Content Area -->
-    <main class="flex-1 overflow-y-auto relative p-4 md:p-8 pt-4 md:pt-8">
+    <main id="main-content" class="flex-1 overflow-y-auto relative p-4 md:p-8 pt-4 md:pt-8">
 
         <!-- SECTION: DASHBOARD -->
         <section id="dashboard" class="max-w-7xl mx-auto animate-fade-in space-y-4">
             <header
-                class="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 p-4 sm:p-6 rounded-2xl -mx-4 md:-mx-8 px-4 md:px-8 relative overflow-hidden"
-                style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(239, 245, 255, 0.44)); border: 1px solid rgba(255, 255, 255, 0.62); box-shadow: 0 20px 48px rgba(120, 146, 204, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.82);">
-                
-                <!-- Decorative Ship Wheels in Corners -->
-                <div class="absolute top-2 left-2 text-3xl md:text-4xl opacity-20 pointer-events-none" style="color: var(--bronze-dark);">☸</div>
-                <div class="absolute top-2 right-2 text-3xl md:text-4xl opacity-20 pointer-events-none transform rotate-45" style="color: var(--bronze-dark);">☸</div>
-                
+                class="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 p-4 sm:p-6 rounded-2xl relative overflow-hidden">
                 <div class="flex items-center gap-4 flex-1 relative z-10">
                     <div class="relative flex-shrink-0">
-                        <!-- Ornate Portrait Frame -->
-                        <div class="absolute -inset-2 rounded-full opacity-50 pointer-events-none"
-                             style="background: radial-gradient(circle, var(--gold-accent) 0%, transparent 70%); filter: blur(8px);"></div>
-                        
-                        <img src="assets/luffy_portrait.png" class="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 shadow-xl relative z-10"
-                            style="border-color: var(--gold-accent); box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.3);" alt="Luffy">
-                        
-                        <!-- Decorative corner brackets -->
-                        <div class="absolute -top-1 -left-1 w-6 h-6 border-l-3 border-t-3 pointer-events-none" style="border-color: var(--bronze-dark);"></div>
-                        <div class="absolute -top-1 -right-1 w-6 h-6 border-r-3 border-t-3 pointer-events-none" style="border-color: var(--bronze-dark);"></div>
-                        <div class="absolute -bottom-1 -left-1 w-6 h-6 border-l-3 border-b-3 pointer-events-none" style="border-color: var(--bronze-dark);"></div>
-                        <div class="absolute -bottom-1 -right-1 w-6 h-6 border-r-3 border-b-3 pointer-events-none" style="border-color: var(--bronze-dark);"></div>
-                        
+                        <img src="assets/luffy_portrait.png" class="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 shadow-xl relative z-10" alt="Luffy" width="96" height="96">
                         <div id="user-level"
-                            class="absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-black border-3 z-20 treasure-chest">
+                            class="absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-black border-3 z-20">
                             lvl 0</div>
                     </div>
                     <div>
-                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black op-title mb-1 flex items-center gap-2"
-                            style="color: var(--ship-wood); text-shadow: 2px 2px 0 rgba(255, 215, 0, 0.3);">
-                            <span class="text-base md:text-xl">⚓</span>
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black op-title mb-1 flex items-center gap-2">
                             Welcome Back
                         </h2>
                         <p class="text-xs sm:text-sm md:text-base font-bold" style="color: var(--text-secondary);">
                             You've practiced for
-                            <span id="dash-time" class="font-black px-2 py-0.5 rounded" style="color: var(--bronze-dark); background: linear-gradient(135deg, var(--gold-accent), var(--bronze-light));">0</span>
+                            <span id="dash-time" class="font-black px-2 py-0.5 rounded">0</span>
                             minutes today. Keep it up!
                         </p>
                     </div>
                 </div>
-                
-                <!-- Current Streak with Ornate Styling -->
-                <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-4 flex-shrink-0 relative overflow-hidden"
-                     style="border: 1px solid rgba(255, 255, 255, 0.62); box-shadow: 0 16px 32px rgba(120, 146, 204, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.82);">
-                    <div class="absolute inset-0 opacity-10 pointer-events-none"
-                         style="background: repeating-linear-gradient(45deg, var(--bronze-dark) 0px, var(--bronze-dark) 2px, transparent 2px, transparent 10px);"></div>
-                    
-                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-2xl sm:text-3xl flex-shrink-0 relative z-10"
-                         style="background: radial-gradient(circle, rgba(255, 107, 0, 0.2), rgba(220, 38, 38, 0.3)); box-shadow: 0 0 20px rgba(255, 107, 0, 0.4), inset 0 2px 4px rgba(255, 215, 0, 0.2); border: 2px solid var(--copper);">
-                        🔥
+
+                <div class="glass-card p-4 sm:p-5 rounded-2xl flex items-center gap-4 flex-shrink-0 relative overflow-hidden">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center flex-shrink-0 relative z-10 streak-flame" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 3c1.5 3 1 5.5-.5 7.5C10 9 9 7.5 9.5 5.5 7 7 5 10 5 13.5A7 7 0 0 0 12 21a7 7 0 0 0 7-7.5C19 9 16 5.5 12 3z"/>
+                        </svg>
                     </div>
                     <div class="relative z-10">
-                        <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider" style="color: var(--bronze-dark);">Current Streak</div>
-                    <div class="text-3xl sm:text-4xl font-black op-title"
-                        style="background: linear-gradient(135deg, var(--bronze-light) 0%, var(--copper) 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.2));">
+                        <div class="text-[10px] sm:text-xs font-black uppercase tracking-wider" style="color: var(--text-secondary);">Current Streak</div>
+                        <div class="text-3xl sm:text-4xl font-black op-title" style="color: var(--ui-ink);">
                             3 Days
                         </div>
                         <div class="text-[10px] sm:text-xs font-bold" style="color: var(--text-secondary);">Best: 12 Days</div>
@@ -1167,11 +1115,8 @@
             </header>
             
             <!-- Daily Tasks Section -->
-            <div class="glass-card p-6 rounded-3xl mb-6 relative overflow-hidden"
-                 style="border: 1px solid rgba(255, 255, 255, 0.62); box-shadow: 0 20px 48px rgba(120, 146, 204, 0.18);">
-                <div class="absolute top-2 right-2 text-4xl opacity-10 pointer-events-none">⚡</div>
-                
-                <div class="mb-4">
+            <div class="glass-card p-6 rounded-3xl mb-6 relative overflow-hidden">
+                <div class="mb-4 relative z-10">
                     <h3 class="text-2xl font-black op-font mb-1" style="color: var(--ship-wood);">
                         <span class="compass-accent">Daily Tasks</span>
                     </h3>
@@ -1191,36 +1136,27 @@
             </div>
             
             <!-- Word of the Day Card -->
-            <div class="glass-card p-6 flex flex-col justify-center relative overflow-hidden rounded-3xl"
-                 style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(239, 245, 255, 0.5)); border: 1px solid rgba(255, 255, 255, 0.62); box-shadow: 0 20px 48px rgba(120, 146, 204, 0.2);">
-                
-                <div class="absolute inset-0 opacity-70" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.52), rgba(223, 238, 255, 0.34));"></div>
-                
+            <div class="glass-card p-6 flex flex-col justify-center relative overflow-hidden rounded-3xl">
                 <div class="relative z-10">
                     <div class="uppercase tracking-widest text-xs font-black mb-3 flex items-center justify-between" style="color: var(--ocean-mid);">
                         <div class="flex items-center gap-2">
-                            <span class="text-xl">📜</span>
                             <span class="compass-accent">Word of the Day</span>
                         </div>
                         <button onclick="shuffleRandomWord()"
                             class="group flex items-center justify-center w-10 h-10 rounded-xl transition-all transform hover:scale-110 active:scale-95"
-                            style="background: linear-gradient(135deg, var(--bronze-light), var(--copper)); border: 2px solid var(--bronze-dark); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);"
-                            title="Get random word">
-                            <span class="text-xl group-hover:rotate-180 transition-transform duration-500">🎲</span>
+                            title="Get random word" aria-label="Shuffle word of the day">
+                            <svg class="nav-svg group-hover:rotate-180 transition-transform duration-500" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
                         </button>
                     </div>
-                    
-                    <h3 class="text-3xl lg:text-4xl font-black mb-2 op-font break-words"
-                        style="color: var(--ship-wood); text-shadow: 2px 2px 0 rgba(255, 215, 0, 0.2);">
+
+                    <h3 class="text-3xl lg:text-4xl font-black mb-2 op-font break-words" style="color: var(--ship-wood);">
                         die Beharrlichkeit
                     </h3>
                     <p class="text-base lg:text-lg mb-6 font-bold italic" style="color: var(--text-secondary);">
                         persistence, perseverance
                     </p>
 
-                    <div class="p-4 rounded-2xl mb-6 relative overflow-hidden"
-                         style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(232, 243, 255, 0.56)); border-left: 3px solid rgba(141, 201, 255, 0.9); box-shadow: 0 14px 30px rgba(120, 146, 204, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.82);">
-                        <div class="absolute top-0 right-0 text-6xl opacity-10">⚓</div>
+                    <div class="p-4 rounded-2xl relative overflow-hidden">
                         <p class="font-black text-base lg:text-lg op-font break-words relative z-10" style="color: var(--ship-wood);">
                             "Beharrlichkeit führt zum Ziel."
                         </p>
@@ -1228,7 +1164,6 @@
                             Persistence leads to the goal.
                         </p>
                     </div>
-
                 </div>
             </div>
         </section>
@@ -1543,6 +1478,7 @@
         </div>
 
     </main>
+    </div><!-- /.app-chrome -->
 
     <!-- Wanted Poster Modal -->
     <div id="wanted-modal"
